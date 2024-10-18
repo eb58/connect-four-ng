@@ -8,7 +8,7 @@ describe('tests for winning ', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({ schemas: [CUSTOM_ELEMENTS_SCHEMA] });
     vg = TestBed.inject(ConnectFourModelService);
-    vg.gameSettings.maxDepth = 7
+    vg.gameSettings.maxDepth = 6
   });
 
   test('scenario 1', () => {
