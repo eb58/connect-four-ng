@@ -12,7 +12,10 @@ describe('VgModelStaticService', () => {
 
   test('should be created', () => expect(service).toBeTruthy());
   test('should be initialized correctly', () => {
-    expect(service.allWinningRows.length).toEqual(69)
-    expect(service.winningRowsForFields.length).toEqual(42)
+    expect(service.allWinningRows.length).toBe(69)
+    expect(service.winningRowsForFields.length).toBe(42)
+    expect(service.winningRowsForFields[0]).toEqual([0, 1, 2])
+    expect(service.winningRowsForFields[1]).toEqual([0, 3, 4, 5])
+    expect(service.winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
   })
 });
