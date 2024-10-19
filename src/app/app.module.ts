@@ -8,6 +8,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { QuestionDialog } from './components/question-dialog/question-dialog.component';
 import { SettingsDialog } from './components/settings-dialog/settings-dialog.component';
@@ -32,6 +33,7 @@ import { FormsModule } from '@angular/forms';
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
+    MatProgressSpinnerModule,
     BrowserModule,
     BrowserAnimationsModule
   ],

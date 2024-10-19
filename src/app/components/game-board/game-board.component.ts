@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Observable, filter } from 'rxjs';
 import { GameSettings, ConnectFourModelService } from '../../services/connect4-model.service';
 import { DIM, FieldOccupiedType, range } from '../../services/connect4-model-static.service';
@@ -17,6 +18,7 @@ export class GameBoardComponent {
 
   NROW = range(DIM.NROW);
   NCOL = range(DIM.NCOL);
+  thinking = false;
 
   constructor(private readonly vg: ConnectFourModelService, public dialog: MatDialog) {
     if (this.vg.gameSettings.whoBegins === 'ai') this.actAsAI()
@@ -27,6 +29,7 @@ export class GameBoardComponent {
   openSettingsDialog = (gameSettings: GameSettings): Observable<GameSettings> => this.dialog.open(SettingsDialog, { data: gameSettings }).afterClosed()
 
   onClick = (c: number) => {
+    if( this.thinking ) return
     this.info = ''
 
     if (this.vg.isDraw()) { this.info = 'Das Spiel ist unentschieden ausgegangen.'; return }
@@ -41,11 +44,14 @@ export class GameBoardComponent {
     this.vg.move(c)
     if (this.vg.isDraw()) { this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!'); return }
     if (this.vg.isMill()) { this.openInfoDialog('Gratuliere, du hast gewonnen!'); return }
-    setTimeout(this.actAsAI, 100)
+    this.thinking = true
+    setTimeout(this.actAsAI, 300)
   }
 
   actAsAI = () => {
     const bestMoves = this.vg.calcBestMoves()
+    this.thinking = false
+
     console.log('SCORES:', bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, ''), this.vg.state.moves.join(','))
     this.vg.move(bestMoves[0].move)
     this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
@@ -65,9 +71,9 @@ export class GameBoardComponent {
       .subscribe(() => {
         let moves: number[] = []
         // just for test begin
-        moves = [0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6], this.vg.gameSettings.maxDepth = 12;
+        moves = [0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6], this.vg.gameSettings.maxDepth = 10;
         // moves = [3, 3, 0, 3, 0, 3, 3, 0]   
-        moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4]
+        // moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4]
         // moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4]
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 6]
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 2]

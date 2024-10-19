@@ -12,9 +12,16 @@
     <mat-card-content>
         <p>{{info}}</p>
     </mat-card-content>
-    <mat-card-actions>
-        <button mat-fab color="primary" matTooltip="Restart" (click)="restartGame()"><mat-icon>cancel</mat-icon></button>
-        <button mat-fab color="primary" matTooltip="Undo last move" (click)="undoMove()"><mat-icon>undo</mat-icon></button>
-        <button mat-fab color="primary" matTooltip="Settings"(click)="openSettings()"><mat-icon>settings</mat-icon></button>
+    <mat-card-actions *ngIf="!thinking">
+        <button mat-fab color="primary" matTooltip="Restart"
+            (click)="restartGame()"><mat-icon>cancel</mat-icon></button>
+        <button mat-fab color="primary" matTooltip="Undo last move"
+            (click)="undoMove()"><mat-icon>undo</mat-icon></button>
+        <button mat-fab color="primary" matTooltip="Settings" (click)="openSettings()">
+            <mat-icon>settings</mat-icon>
+        </button>
     </mat-card-actions>
+    <div *ngIf="thinking" style="display:flex; justify-content: center;">
+        <mat-progress-spinner mode="indeterminate" diameter="30"></mat-progress-spinner>
+    </div>
 </mat-card>
