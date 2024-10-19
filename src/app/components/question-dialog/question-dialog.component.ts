@@ -10,9 +10,9 @@ export type QuestionDialogData =  {
   selector: 'app-question-dialog',
   templateUrl: './question-dialog.component.html',
 })
-export class QuestionDialogComponent {
+export class QuestionDialog{
   constructor(
-    public dialogRef: MatDialogRef<QuestionDialogComponent>,
+    public dialogRef: MatDialogRef<QuestionDialog>,
     @Inject(MAT_DIALOG_DATA) public question: QuestionDialogData,
   ) { }
 }

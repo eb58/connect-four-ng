@@ -9,8 +9,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { QuestionDialogComponent } from './components/question-dialog/question-dialog.component';
-import { SettingsDialogComponent } from './components/settings-dialog/settings-dialog.component';
+import { QuestionDialog } from './components/question-dialog/question-dialog.component';
+import { SettingsDialog } from './components/settings-dialog/settings-dialog.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -19,8 +19,8 @@ import { FormsModule } from '@angular/forms';
   declarations: [
     AppComponent,
     GameBoardComponent,
-    QuestionDialogComponent,
-    SettingsDialogComponent,
+    QuestionDialog,
+    SettingsDialog,
   ],
   imports: [
     FormsModule,

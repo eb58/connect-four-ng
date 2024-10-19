@@ -7,9 +7,9 @@ import { GameSettings } from 'src/app/services/connect4-model.service';
   templateUrl: './settings-dialog.component.html',
   styleUrls: ['./settings-dialog.component.css']
 })
-export class SettingsDialogComponent {
+export class SettingsDialog {
   constructor(
-    public dialogRef: MatDialogRef<SettingsDialogComponent>,
+    public dialogRef: MatDialogRef<SettingsDialog>,
     @Inject(MAT_DIALOG_DATA) public gameSettings: GameSettings,
   ) { }
 
