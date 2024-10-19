@@ -8,7 +8,6 @@ describe('tests for winning ', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({ schemas: [CUSTOM_ELEMENTS_SCHEMA] });
     vg = TestBed.inject(ConnectFourModelService);
-    vg.gameSettings = { whoBegins: 'human', maxDepth: 6 }
   });
 
   test('scenario 1', () => {
@@ -19,7 +18,7 @@ describe('tests for winning ', () => {
     // H  _  _  _  _  _  C
     // H  _  _  _  _  _  C
     // H  H  _  _  _  _  C
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].score).toBe(vg.MAXVAL);
     expect(m[0].move).toBe(6);
   });
@@ -32,7 +31,7 @@ describe('tests for winning ', () => {
     // _  _  _  _  _  _  _
     // H  _  _  H  _  _  _
     // H  _  _  C  C  _  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].score).toBe(vg.MAXVAL - 2);
     expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
   });
@@ -46,7 +45,7 @@ describe('tests for winning ', () => {
     // _  _  H  _  _  _  _
     // _  _  H  _  _  _  _
     // _  _  C  _  C  _  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].move).toBe(3);
     expect(m[0].score).toBe(vg.MAXVAL - 2);
   });
@@ -59,7 +58,7 @@ describe('tests for winning ', () => {
     // C  _  C  H  H  C  _                                                                 
     // H  H  C  C  C  H  _
     // H  C  C  H  C  C  C
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].move).toBe(5);
     expect(m[0].score).toBe(vg.MAXVAL);
   });
@@ -72,7 +71,7 @@ describe('tests for winning ', () => {
     // H  _  _  H  _  _  _
     // H  _  H  C  C  _  _
     // H  _  H  C  C  _  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].move).toBe(6);
     expect(m[0].score).toBe(vg.MAXVAL - 6);
   });
@@ -85,15 +84,14 @@ describe('tests for winning ', () => {
     // H  _  _  _  _  _  _ 
     // H  _  _  C  _  _  _ 
     // H  H  H  C  C  _  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].move).toBe(2); expect(m[0].score).toBe(vg.MAXVAL - 6);
   });
 
   test('scenario 8', () => {
-    vg.gameSettings.maxDepth = 10;
     vg.doMoves([0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6])
     vg.dumpBoard(vg.state)
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(10)
     expect(m[0].move).toBe(5); expect(m[0].score).toBe(vg.MAXVAL - 10);
   })
 })

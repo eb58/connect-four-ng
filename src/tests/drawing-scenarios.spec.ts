@@ -8,14 +8,13 @@ describe('tests for draw scenarios', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({ schemas: [CUSTOM_ELEMENTS_SCHEMA] });
         vg = TestBed.inject(ConnectFourModelService);
-        vg.gameSettings.maxDepth = 6
     });
 
     test('full board', () => {
         vg.state.whoseTurn = 'ai'
         vg.doMoves([3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4, 1, 4])
         expect(vg.state.moves.length).toBe(DIM.NCOL * DIM.NROW)
-        expect(vg.calcBestMoves().length).toBe(0)
+        expect(vg.calcBestMoves(6).length).toBe(0)
     });
 
     test('board almost full', () => {
@@ -27,7 +26,7 @@ describe('tests for draw scenarios', () => {
         // C  H  C  H  C  H  C
         // H  H  C  H  C  C  C
         expect(vg.state.moves.length).toBe(39)
-        const m = vg.calcBestMoves()
+        const m = vg.calcBestMoves(6)
         expect(m.length).toBe(2)
         expect(m[0].move === 1 || m[0].move === 4).toBeTruthy()
         expect(m[0].score === 0 ).toBeTruthy() // -0!!

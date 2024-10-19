@@ -8,7 +8,6 @@ describe('tests for loosing', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({ schemas: [CUSTOM_ELEMENTS_SCHEMA] });
     vg = TestBed.inject(ConnectFourModelService);
-    vg.gameSettings.maxDepth = 6
   });
 
   test('scenario 1', () => {
@@ -20,7 +19,7 @@ describe('tests for loosing', () => {
     // _  _  _  _  _  _  _
     // C  _  _  _  _  _  _
     // C  C  _  H  H  H  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m.every(x => x.score === -vg.MAXVAL + 1)).toBeTruthy(); // no chance to win!
   });
 
@@ -32,7 +31,7 @@ describe('tests for loosing', () => {
     // _  _  _  _  _  _  _
     // _  _  _  C  _  _  _
     // C  _  _  H  H  H  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m.every(x => x.score === -vg.MAXVAL + 1)).toBeTruthy(); // no chance to win!
   });
 
@@ -45,12 +44,11 @@ describe('tests for loosing', () => {
     // C  _  H  H  _  _  _
     // C  _  H  H  C  _  _
     // C  C  C  H  H  _  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(6)
     expect(m[0].move).toBe(3); expect(m[0].score).toBe(-vg.MAXVAL + 3);
   });
 
   test('scenario 4', () => {
-    vg.gameSettings.maxDepth = 8;
     vg.state.whoseTurn = 'ai'
     vg.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1, 2])
     // _  _  _  _  _  _  _
@@ -59,7 +57,7 @@ describe('tests for loosing', () => {
     // C  _  _  _  _  _  _ 
     // C  _  H  H  _  _  _ 
     // C  C  C  H  H  _  _
-    const m = vg.calcBestMoves()
+    const m = vg.calcBestMoves(8)
     expect(m[0].move).toBe(4); expect(m[0].score).toBe(-vg.MAXVAL + 5);
   });
 
