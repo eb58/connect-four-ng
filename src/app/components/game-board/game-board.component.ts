@@ -7,6 +7,8 @@ import { DIM, FieldOccupiedType, range } from '../../services/connect4-model-sta
 import { InfoDialog } from '../info-dialog/info-dialog.component';
 import { QuestionDialog } from '../question-dialog/question-dialog.component';
 import { SettingsDialog } from '../settings-dialog/settings-dialog.component';
+const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+const randomIntInRange = (min: number, max: number) => Math.floor(randomInRange(min, max + 1));
 
 @Component({
   selector: 'app-game-board',
@@ -52,6 +54,13 @@ export class GameBoardComponent {
   }
 
   actAsAI = () => {
+    if (this.vg.state.moves.length <= 2) {
+      const m = randomIntInRange(0, 6)
+      this.vg.move(m)
+      this.info = `Mein letzter Zug: Spalte ${m+1}`
+      return
+    }
+
     this.thinking = true
     setTimeout(() => {
       const bestMoves = this.vg.calcBestMoves(this.gameSettings.maxDepth)
