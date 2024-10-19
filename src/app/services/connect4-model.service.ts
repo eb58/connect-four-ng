@@ -67,7 +67,6 @@ export class ConnectFourModelService {
 
   move = (c: number, mstate: STATE = this.state) => {
     const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
-
     // update state of winning rows attached to idxBoard
     this.vgmodelstatic.winningRowsForFields[idxBoard].forEach(i => {
       const wrState = mstate.winningRowsState[i];
@@ -75,7 +74,6 @@ export class ConnectFourModelService {
       wrState.occupiedBy = this.transitionGR(occupy, wrState.occupiedBy);
       wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
       mstate.isMill ||= wrState.cnt >= 4;
-
     });
     mstate.moves.push(c);
     mstate.board[idxBoard] = mstate.whoseTurn === 'human' ? FieldOccupiedType.human : FieldOccupiedType.ai;

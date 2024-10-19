@@ -90,7 +90,13 @@ describe('tests for winning ', () => {
 
   test('scenario 8', () => {
     vg.doMoves([0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6])
-    vg.dumpBoard(vg.state)
+    // _  _  C  C  _  _  _
+    // _  _  H  C  _  _  H
+    // _  _  H  H  _  _  C
+    // _  _  C  C  _  _  H
+    // _  C  H  C  _  _  H
+    // H  H  H  C  C  _  H
+    // console.log(vg.dumpBoard(vg.state))
     const m = vg.calcBestMoves(10)
     expect(m[0].move).toBe(5); expect(m[0].score).toBe(vg.MAXVAL - 10);
   })
