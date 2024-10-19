@@ -7,10 +7,5 @@ import { ConnectFourModelService } from './services/connect4-model.service';
 })
 export class AppComponent {
   title = 'Connect four';
-  state;
-
-  constructor(private vg: ConnectFourModelService){
-    this.state= vg.state
-  }
-  
+  constructor() { }
 }
