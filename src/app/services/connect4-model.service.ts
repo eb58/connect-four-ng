@@ -154,11 +154,12 @@ export class ConnectFourModelService {
   }
   restart = (moves: number[] = []) => {
     this.init(moves)
-    if (this.state.whoseTurn === 'ai') {
+    if (this.state.whoseTurn === 'ai') setTimeout(() => {
       const x = this.calcBestMoves()[0]
       console.log(JSON.stringify(x))
       this.move(x.move)
-    }
+    }, 100)
   }
-  undo = () => this.init(this.state.moves.slice(0, -2))
+
+  undo = () => this.restart(this.state.moves.slice(0, -2))
 }
