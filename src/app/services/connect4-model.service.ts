@@ -8,7 +8,7 @@ const cloneState = (s: STATE) => ({
   moves: [...s.moves],
   board: [...s.board],
   heightCols: [...s.heightCols],
-  winningRowsState: s.winningRowsState.map((wr: WinningRow) => ({ ...wr }))
+  winningRows: s.winningRows.map((wr: WinningRow) => ({ ...wr }))
 })
 
 type Player = 'human' | 'ai'
@@ -20,12 +20,12 @@ export type GameSettings = {
 
 export type STATE = {
   hash: string;
-  moves: number[],                // moves - list of columns (0, 1, ... , 6) 
-  board: FieldOccupiedType[];     // state of board
-  heightCols: number[];           // height of columns
-  winningRowsState: WinningRow[]; // state of winning rows
-  whoseTurn: Player               // who's turn is it: human or ai
-  isMill: boolean,                // we have four in a row!
+  moves: number[],            // moves - list of columns (0, 1, ... , 6) 
+  board: FieldOccupiedType[]; // state of board
+  heightCols: number[];       // height of columns
+  winningRows: WinningRow[];  // state of winning rows
+  whoseTurn: Player           // who's turn is it: human or ai
+  isMill: boolean,            // we have four in a row!
 }
 
 export type MoveType = {
@@ -42,7 +42,7 @@ export class ConnectFourModelService {
   origState: STATE = { // state that is used for evaluating 
     board: range(DIM.NCOL * DIM.NROW).map(() => 0),
     heightCols: range(DIM.NCOL).map(() => 0), // height of cols = [0, 0, 0, ..., 0];
-    winningRowsState: this.vgmodelstatic.allWinningRows,
+    winningRows: this.vgmodelstatic.allWinningRows,
     whoseTurn: 'human',
     isMill: false,
     hash: '',
@@ -69,7 +69,7 @@ export class ConnectFourModelService {
     const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
     // update state of winning rows attached to idxBoard
     this.vgmodelstatic.winningRowsForFields[idxBoard].forEach(i => {
-      const wrState = mstate.winningRowsState[i];
+      const wrState = mstate.winningRows[i];
       const occupy = mstate.whoseTurn === 'human' ? FieldOccupiedType.human : FieldOccupiedType.ai;
       wrState.occupiedBy = this.transitionGR(occupy, wrState.occupiedBy);
       wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
@@ -83,12 +83,15 @@ export class ConnectFourModelService {
     return mstate;
   }
 
-  scoreOfWinningRow = (wr: WinningRow) => (wr.occupiedBy === FieldOccupiedType.ai ? 1 : -1) * wr.score * wr.cnt
-
-  computeScoreOfNodeForAI = (state: STATE) =>
-    state.winningRowsState
-      .filter(wr => wr.occupiedBy === FieldOccupiedType.human || wr.occupiedBy === FieldOccupiedType.ai)
-      .reduce((acc: number, wr: WinningRow) => acc + (state.whoseTurn === 'ai' ? 1 : -1) * this.scoreOfWinningRow(wr), 0);
+  computeScoreOfNodeForAI = (state: STATE) => {
+    const winningRows = state.winningRows
+    let score = 0; 
+    for (let wr of winningRows){
+      if (wr.occupiedBy === FieldOccupiedType.ai) score += wr.cnt
+      if (wr.occupiedBy === FieldOccupiedType.human) score -= wr.cnt
+    } 
+    return state.whoseTurn === 'ai' ? score : -score
+  }
 
   negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
     const hashkey = state.hash + '|' + actDepth;
@@ -109,7 +112,7 @@ export class ConnectFourModelService {
         break;
     }
 
-    if (Math.abs(score) > MAXVAL - 20) {
+    if (Math.abs(score) > MAXVAL - 50) {
       // console.log("Cachesize:", Object.keys(this.cache).length)
       if (this.cache[hashkey] && this.cache[hashkey] !== score) console.log("Argh!!!", hashkey, this.cache[hashkey], score)
       if (!this.cache[hashkey]) this.cache[hashkey] = score
