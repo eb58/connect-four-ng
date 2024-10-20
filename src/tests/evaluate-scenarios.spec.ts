@@ -22,7 +22,7 @@ describe('tests for draw scenarios', () => {
         expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
     });
 
-    test('scenario 3', () => {
+    test('scenario 2', () => {
         vg.doMoves([2, 6, 4])
         // _  _  _  _  _  _  _
         // _  _  _  _  _  _  _
