@@ -22,7 +22,7 @@ export type GameSettings = {
   styleUrls: ['./game-board.component.css']
 })
 export class GameBoardComponent {
-  gameSettings = JSON.parse(localStorage.getItem('connect-4-settings') || '') || { whoBegins: 'human', maxDepth: 6 };
+  gameSettings = JSON.parse(localStorage.getItem('connect-4-settings') || 'false') || { whoBegins: 'human', maxDepth: 6 };
   info = 'Bitte klicke in die Spalte, in die du einen Stein einwerfen möchtest.'
 
   NROW = range(DIM.NROW);
@@ -69,9 +69,12 @@ export class GameBoardComponent {
 
     this.thinking = true
     setTimeout(() => {
-      const bestMoves = this.cf.calcScoresOfMoves(this.gameSettings.maxDepth)
+      const depth = this.gameSettings.maxDepth 
+      + (this.cf.state.moves.length >= 10 ? 2 : 0) 
+      + (this.cf.state.moves.length >= 20 ? 2 : 0)
+      const bestMoves = this.cf.calcScoresOfMoves(depth)
       this.thinking = false
-      console.log('SCORES:', bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, ''), this.cf.state.moves.join(','))
+      console.log('SCORES:', bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, ''), depth, this.cf.state.moves.join(','))
       this.cf.move(bestMoves[0].move)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!')
