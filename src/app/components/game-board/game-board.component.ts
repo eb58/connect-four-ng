@@ -42,20 +42,17 @@ export class GameBoardComponent {
 
   onClick = (c: number) => {
     if (this.thinking) return
-    this.info = ''
-
-    if (this.cf.isDraw()) { this.info = 'Das Spiel ist unentschieden ausgegangen.'; return }
-    if (this.cf.isMill()) { this.info = 'Das Spiel ist zuende. Glückwunsch, du hast gewonnen.'; return }
-
-    if (this.cf.state.aiTurn) { this.info = 'Du bist nicht am Zug'; return; }
+    if (this.cf.state.aiTurn) { this.info = ' Du bist nicht am Zug'; return; }
+    if (this.cf.isMill()) this.info = 'Das Spiel ist zuende. Glückwunsch, du hast gewonnen.'
+    if (this.cf.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
 
     const idxBoard = c + DIM.NCOL * this.cf.state.heightCols[c]
     if (0 > idxBoard || idxBoard > DIM.NCOL * DIM.NROW) { this.info = 'Kein erlaubter Zug'; return }
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
     this.cf.move(c)
-    if (this.cf.isDraw()) { this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!'); return }
     if (this.cf.isMill()) { this.openInfoDialog('Gratuliere, du hast gewonnen!'); return }
+    if (this.cf.isDraw()) { this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!'); return }
     this.actAsAI()
   }
 
@@ -69,15 +66,16 @@ export class GameBoardComponent {
 
     this.thinking = true
     setTimeout(() => {
-      const depth = this.gameSettings.maxDepth 
-      + (this.cf.state.moves.length >= 10 ? 2 : 0) 
-      + (this.cf.state.moves.length >= 20 ? 2 : 0)
+      const depth = this.gameSettings.maxDepth
+        + (this.cf.state.moves.length > 10 ? 2 : 0)
+        + (this.cf.state.moves.length > 20 ? 2 : 0)
+        + (this.cf.state.moves.length > 25 ? 2 : 0)
       const bestMoves = this.cf.calcScoresOfMoves(depth)
       this.thinking = false
-      console.log('SCORES:', bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, ''), depth, this.cf.state.moves.join(','))
+      console.log(`SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, DEPTH:${depth}, MOVES:[${this.cf.state.moves.join(',')}]`)
       this.cf.move(bestMoves[0].move)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
-      if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!')
+      if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
       if (this.cf.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
     }, 500)
   }
@@ -104,14 +102,17 @@ export class GameBoardComponent {
       .pipe(filter(res => res === 'ja'))
       .subscribe(() => {
         let moves: number[] = []
-        // just for test begin
-        moves = [0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6], this.gameSettings = { whoBegins: 'human', maxDepth: 12 };
+        // begin - just for test
+        moves = [3, 4, 3, 2, 3, 3, 3, 6, 4, 0, 2, 3, 2, 2, 4, 4, 5]
+        // moves = [2, 6, 2, 4, 2, 2, 4, 3, 5, 3, 3, 3, 3, 4, 5, 4, 4, 2, 3, 2, 4, 1, 6, 5, 5]
+        // moves = [2, 6, 2, 4, 2, 2, 4, 3, 5, 3, 3, 3, 3, 4, 5, 4, 4, 2, 3, 2, 4, 1, 6, 5, 5]
+        // moves = [0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6], this.gameSettings = { whoBegins: 'human', maxDepth: 12 };
         // moves = [3, 3, 0, 3, 0, 3, 3, 0]   
         // moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4]
         // moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4]
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 6]
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 2]
-        // just for test end
+        // end - just for test
         this.restart(this.gameSettings, moves)
       })
   }

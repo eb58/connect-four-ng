@@ -78,7 +78,7 @@ export class ConnectFourModelService {
   }
 
   computeScoreOfNodeForAI = (state: STATE) =>
-    (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
+    state.winningRows.reduce((res, wr) => {
       if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt 
       if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt 
       return res
@@ -100,8 +100,10 @@ export class ConnectFourModelService {
 
   checkSimpleSolutions = (moves: number[], lev: number) => {
     const scoresOfMoves = moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), lev, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
-    if (scoresOfMoves.filter(m => m.score >= MAXVAL - 50).length >= 1) return scoresOfMoves // there are moves to win!
-    if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length == 0) return scoresOfMoves // all moves lead to disaster 
+    if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there are moves to win!
+    if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster 
+    if (scoresOfMoves.filter(x => x.score > -MAXVAL + 50).length === 1) return scoresOfMoves; // there is only one move left!
+    // console.log( `LEV:${lev} MOVES:${moves.join(',')}`)
     return undefined;
   }
 
@@ -109,21 +111,19 @@ export class ConnectFourModelService {
     if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
     const moves = this.generateMoves(this.state);
     return (
-      this.checkSimpleSolutions(moves, 1) ||
-      this.checkSimpleSolutions(moves, 3) ||
-      this.checkSimpleSolutions(moves, 5) ||
+      [1, 2, 3].reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n), undefined) ||
       moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
     )
   }
 
   generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
   isMill = (): boolean => this.state.isMill
-  isDraw = (): boolean => this.generateMoves(this.state).length === 0
+  isDraw = (): boolean => this.generateMoves(this.state).length === 0 && !this.state.isMill
   doMoves = (moves: number[]): void => moves.forEach(v => this.move(v));
 
   // just for debugging
   mapSym = { [FieldOccupiedType.human]: ' H ', [FieldOccupiedType.ai]: ' C ', [FieldOccupiedType.empty]: ' _ ', [FieldOccupiedType.neutral]: ' § ' };
-  dumpBoard = (state: STATE): string =>
+  dumpBoard = (state: STATE = this.state): string =>
     range(DIM.NROW).reduce(
       (acc, r) => acc + range(DIM.NCOL).reduce((acc, c) => acc + this.mapSym[state.board[c + DIM.NCOL * (DIM.NROW - r - 1)]], '') + '\n',
       '\n')
