@@ -78,13 +78,16 @@ export class ConnectFourModelService {
   }
 
   computeScoreOfNodeForAI = (state: STATE) =>
-    state.winningRows.reduce((res, wr) => {
-      if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt 
-      if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt 
+    (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
+      if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt
+      if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt
       return res
     }, 0)
 
   negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+    const hashkey = state.hash + '|' + actDepth;
+    if (this.cache[hashkey]) return this.cache[hashkey]
+
     if (state.isMill) return -MAXVAL + actDepth
     if (state.moves.length >= NFIELDS) return 0
     if (actDepth === maxDepth) return this.computeScoreOfNodeForAI(state);
@@ -94,6 +97,11 @@ export class ConnectFourModelService {
       alpha = Math.max(alpha, score)
       if (alpha >= beta)
         break;
+    }
+    if (Math.abs(score) > MAXVAL - 50) {
+      // console.log("Cachesize:", Object.keys(this.cache).length)
+      // if (this.cache[hashkey] && this.cache[hashkey] !== score) console.log("Argh!!!", hashkey, this.cache[hashkey], score)
+      if (!this.cache[hashkey]) this.cache[hashkey] = score
     }
     return score;
   }
