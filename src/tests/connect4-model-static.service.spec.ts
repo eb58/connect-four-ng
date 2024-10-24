@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ConnectFourModelStaticService } from '../app/services/connect4-model-static.service';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
-describe('VgModelStaticService', () => {
+describe('ModelStaticService', () => {
   let service: ConnectFourModelStaticService;
 
   beforeEach(() => {

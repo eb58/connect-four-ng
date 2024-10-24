@@ -15,10 +15,10 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  test(`should have as title 'NgFourWins'`, () => {
+  test(`should have as title 'Connect Four'`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('Connect four');
+    expect(app.title).toEqual('Connect Four');
   });
 
 });

@@ -11,12 +11,6 @@ const cloneState = (s: STATE) => ({
   winningRows: s.winningRows.map((wr: WinningRow) => ({ ...wr }))
 })
 
-type Player = 'human' | 'ai'
-
-export type GameSettings = {
-  whoBegins: Player,
-  maxDepth: number,     // skill level
-}
 
 export type STATE = {
   hash: string;
@@ -24,7 +18,7 @@ export type STATE = {
   board: FieldOccupiedType[]; // state of board
   heightCols: number[];       // height of columns
   winningRows: WinningRow[];  // state of winning rows
-  whoseTurn: Player           // who's turn is it: human or ai
+  aiTurn: boolean             // who's turn is it
   isMill: boolean,            // we have four in a row!
 }
 
@@ -42,8 +36,8 @@ export class ConnectFourModelService {
   origState: STATE = { // state that is used for evaluating 
     board: range(DIM.NCOL * DIM.NROW).map(() => 0),
     heightCols: range(DIM.NCOL).map(() => 0), // height of cols = [0, 0, 0, ..., 0];
-    winningRows: this.vgmodelstatic.allWinningRows,
-    whoseTurn: 'human',
+    winningRows: this.cfmodelstatic.allWinningRows,
+    aiTurn: false,
     isMill: false,
     hash: '',
     moves: [],
@@ -53,7 +47,7 @@ export class ConnectFourModelService {
   cntNodesEvaluated = 0;
   cache: any = {};
 
-  constructor(private readonly vgmodelstatic: ConnectFourModelStaticService) {
+  constructor(private readonly cfmodelstatic: ConnectFourModelStaticService) {
     this.state = cloneState(this.origState);
   }
 
@@ -68,35 +62,32 @@ export class ConnectFourModelService {
   move = (c: number, mstate: STATE = this.state) => {
     const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
     // update state of winning rows attached to idxBoard
-    this.vgmodelstatic.winningRowsForFields[idxBoard].forEach(i => {
+    this.cfmodelstatic.winningRowsForFields[idxBoard].forEach(i => {
       const wrState = mstate.winningRows[i];
-      const occupy = mstate.whoseTurn === 'human' ? FieldOccupiedType.human : FieldOccupiedType.ai;
+      const occupy = mstate.aiTurn ? FieldOccupiedType.ai: FieldOccupiedType.human ;
       wrState.occupiedBy = this.transitionGR(occupy, wrState.occupiedBy);
       wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
       mstate.isMill ||= wrState.cnt >= 4;
     });
     mstate.moves.push(c);
-    mstate.board[idxBoard] = mstate.whoseTurn === 'human' ? FieldOccupiedType.human : FieldOccupiedType.ai;
+    mstate.board[idxBoard] =  mstate.aiTurn ? FieldOccupiedType.ai: FieldOccupiedType.human ;;
     mstate.heightCols[c]++;
-    mstate.whoseTurn = mstate.whoseTurn === 'human' ? 'ai' : 'human';
+    mstate.aiTurn = !mstate.aiTurn;
     mstate.hash = mstate.board.join('')
     return mstate;
   }
 
   computeScoreOfNodeForAI = (state: STATE) => {
     const winningRows = state.winningRows
-    let score = 0; 
-    for (let wr of winningRows){
+    let score = 0;
+    for (let wr of winningRows) {
       if (wr.occupiedBy === FieldOccupiedType.ai) score += wr.cnt
       if (wr.occupiedBy === FieldOccupiedType.human) score -= wr.cnt
-    } 
-    return state.whoseTurn === 'ai' ? score : -score
+    }
+    return state.aiTurn ?  score : -score
   }
 
   negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-    const hashkey = state.hash + '|' + actDepth;
-    if (this.cache[hashkey]) return this.cache[hashkey]
-
     this.cntNodesEvaluated++;
     const allowedMoves = this.generateMoves(state);
 
@@ -111,32 +102,30 @@ export class ConnectFourModelService {
       if (alpha >= beta)
         break;
     }
-
-    if (Math.abs(score) > MAXVAL - 50) {
-      // console.log("Cachesize:", Object.keys(this.cache).length)
-      if (this.cache[hashkey] && this.cache[hashkey] !== score) console.log("Argh!!!", hashkey, this.cache[hashkey], score)
-      if (!this.cache[hashkey]) this.cache[hashkey] = score
-    }
     return score;
   }
 
-  calcBestMoves = (maxDepth: number): MoveType[] => {
-    if (this.state.whoseTurn !== 'ai') throw Error("It must be the AI's turn!")
-    this.cntNodesEvaluated = 0;
+  checkSimpleSolutions = (moves: number[], lev: number) => {
+    const scoresOfMoves = moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), lev, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
+    if (scoresOfMoves.filter(m => m.score >= MAXVAL - 50).length >= 1) return scoresOfMoves // there are moves to win!
+    if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length == 0) return scoresOfMoves // all moves lead to disaster 
+    return undefined;
+  }
+
+  calcScoresOfMoves = (maxDepth: number): MoveType[] => {
+    if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
     const moves = this.generateMoves(this.state);
-
-    // 1. Check if there is a simple Solution with depth 3...
-    const scoresOfMoves = moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), 3, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
-    if (scoresOfMoves.filter(m => m.score >= MAXVAL - 20).length >= 1) return scoresOfMoves // there are moves to win!
-    if (scoresOfMoves.filter(m => m.score > -MAXVAL + 20).length == 0) return scoresOfMoves // all moves lead to disaster 
-
-    // 2. Now calculate with full depth
-    return moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
+    return (
+      this.checkSimpleSolutions(moves, 1) ||
+      this.checkSimpleSolutions(moves, 3) ||
+      this.checkSimpleSolutions(moves, 6) ||
+      moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
+    )
   }
 
   generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
   isMill = (): boolean => this.state.isMill
-  isDraw = (): boolean => this.state.moves.length === DIM.NCOL * DIM.NROW
+  isDraw = (): boolean => this.generateMoves(this.state).length === 0
   doMoves = (moves: number[]): void => moves.forEach(v => this.move(v));
 
   // just for debugging
