@@ -11,7 +11,6 @@ const cloneState = (s: STATE) => ({
   winningRows: s.winningRows.map((wr: WinningRow) => ({ ...wr }))
 })
 
-
 export type STATE = {
   hash: string;
   moves: number[],            // moves - list of columns (0, 1, ... , 6) 
@@ -28,7 +27,8 @@ export type MoveType = {
 }
 
 const ORDER = Object.freeze([3, 4, 2, 5, 1, 6, 0])
-const MAXVAL = 1000000;
+const MAXVAL = 1000000
+const NFIELDS = DIM.NCOL * DIM.NROW
 
 @Injectable({ providedIn: 'root' })
 export class ConnectFourModelService {
@@ -64,39 +64,32 @@ export class ConnectFourModelService {
     // update state of winning rows attached to idxBoard
     this.cfmodelstatic.winningRowsForFields[idxBoard].forEach(i => {
       const wrState = mstate.winningRows[i];
-      const occupy = mstate.aiTurn ? FieldOccupiedType.ai: FieldOccupiedType.human ;
+      const occupy = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;
       wrState.occupiedBy = this.transitionGR(occupy, wrState.occupiedBy);
       wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
       mstate.isMill ||= wrState.cnt >= 4;
     });
     mstate.moves.push(c);
-    mstate.board[idxBoard] =  mstate.aiTurn ? FieldOccupiedType.ai: FieldOccupiedType.human ;;
+    mstate.board[idxBoard] = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;;
     mstate.heightCols[c]++;
     mstate.aiTurn = !mstate.aiTurn;
     mstate.hash = mstate.board.join('')
     return mstate;
   }
 
-  computeScoreOfNodeForAI = (state: STATE) => {
-    const winningRows = state.winningRows
-    let score = 0;
-    for (let wr of winningRows) {
-      if (wr.occupiedBy === FieldOccupiedType.ai) score += wr.cnt
-      if (wr.occupiedBy === FieldOccupiedType.human) score -= wr.cnt
-    }
-    return state.aiTurn ?  score : -score
-  }
+  computeScoreOfNodeForAI = (state: STATE) =>
+    (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
+      if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt 
+      if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt 
+      return res
+    }, 0)
 
   negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-    this.cntNodesEvaluated++;
-    const allowedMoves = this.generateMoves(state);
-
     if (state.isMill) return -MAXVAL + actDepth
-    if (allowedMoves.length === 0) return 0
+    if (state.moves.length >= NFIELDS) return 0
     if (actDepth === maxDepth) return this.computeScoreOfNodeForAI(state);
-
     let score = -MAXVAL;
-    for (const m of allowedMoves) {
+    for (const m of this.generateMoves(state)) {
       score = Math.max(score, -this.negamax(this.move(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
       alpha = Math.max(alpha, score)
       if (alpha >= beta)
@@ -118,7 +111,7 @@ export class ConnectFourModelService {
     return (
       this.checkSimpleSolutions(moves, 1) ||
       this.checkSimpleSolutions(moves, 3) ||
-      this.checkSimpleSolutions(moves, 6) ||
+      this.checkSimpleSolutions(moves, 5) ||
       moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
     )
   }
@@ -130,7 +123,7 @@ export class ConnectFourModelService {
 
   // just for debugging
   mapSym = { [FieldOccupiedType.human]: ' H ', [FieldOccupiedType.ai]: ' C ', [FieldOccupiedType.empty]: ' _ ', [FieldOccupiedType.neutral]: ' § ' };
-  dumpBoard = (state: STATE, s = ""): string =>
+  dumpBoard = (state: STATE): string =>
     range(DIM.NROW).reduce(
       (acc, r) => acc + range(DIM.NCOL).reduce((acc, c) => acc + this.mapSym[state.board[c + DIM.NCOL * (DIM.NROW - r - 1)]], '') + '\n',
       '\n')
