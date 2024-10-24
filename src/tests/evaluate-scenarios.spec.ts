@@ -33,4 +33,30 @@ describe('tests for draw scenarios', () => {
         const m = cf.calcScoresOfMoves(6)
         expect(m[0].move).toBe(3);
     });
-})
+
+    test('scenario 3', () => {
+        cf.doMoves([0, 3, 0, 3, 0])
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // H  _  _  _  _  _  _
+        // H  _  _  C  _  _  _
+        // H  _  _  C  _  _  _
+        const m = cf.calcScoresOfMoves(6)
+        expect(m[0].move).toBe(0);
+        expect(m.filter(x => x.score > -cf.MAXVAL + 50).length).toBe(1);
+    });
+
+    test('scenario 4', () => {
+        cf.doMoves([3, 0, 4])
+        // _  _  _  _  _  _  _ 
+        // _  _  _  _  _  _  _ 
+        // _  _  _  _  _  _  _ 
+        // C  _  _  H  H  _  _
+        const m = cf.calcScoresOfMoves(4)
+        // console.log(m, cf.dumpBoard());
+        expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
+    });
+
+});
+

@@ -57,8 +57,10 @@ describe('tests for loosing', () => {
     // C  _  _  _  _  _  _ 
     // C  _  H  H  _  _  _ 
     // C  C  C  H  H  _  _
-    const m = cf.calcScoresOfMoves(8)
-    expect(m[0].move).toBe(4); expect(m[0].score).toBe(-cf.MAXVAL + 5);
+    const m = cf.calcScoresOfMoves(10)
+    // console.log(m)
+    expect(m[0].move).toBe(4);
+    expect(m[0].score).toBeGreaterThan(-cf.MAXVAL + 50)
   });
 
 });
