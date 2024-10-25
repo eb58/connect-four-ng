@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ConnectFourModelService } from '../app/services/connect4-model.service';
-import { range, DIM } from '../app/services/connect4-model-static.service';
+import { ConnectFourModelService, range, DIM, winningRows, winningRowsForFields } from '../app/services/connect4-model.service';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 describe('ConnectFourModelService', () => {
@@ -12,6 +11,14 @@ describe('ConnectFourModelService', () => {
   });
 
   test('should be created', () => expect(cf).toBeTruthy());
+
+  test('should be initialized correctly', () => {
+    expect(winningRows.length).toBe(69)
+    expect(winningRowsForFields.length).toBe(42)
+    expect(winningRowsForFields[0]).toEqual([0, 1, 2])
+    expect(winningRowsForFields[1]).toEqual([0, 3, 4, 5])
+    expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
+  })
 
   test('should be initalized correctly', () => {
     expect(cf.state.board.length).toBe(DIM.NCOL * DIM.NROW);

@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { ConnectFourModelService } from '../app/services/connect4-model.service';
-import { DIM } from '../app/services/connect4-model-static.service';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-let cf: ConnectFourModelService;
+import { ConnectFourModelService } from '../app/services/connect4-model.service';
 
 describe('tests for draw scenarios', () => {
+    let cf: ConnectFourModelService;
     beforeEach(() => {
         TestBed.configureTestingModule({ schemas: [CUSTOM_ELEMENTS_SCHEMA] });
         cf = TestBed.inject(ConnectFourModelService);

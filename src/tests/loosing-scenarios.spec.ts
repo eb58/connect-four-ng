@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { ConnectFourModelService } from '../app/services/connect4-model.service';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ConnectFourModelService } from '../app/services/connect4-model.service';
 
 describe('tests for loosing', () => {
   let cf: ConnectFourModelService;
