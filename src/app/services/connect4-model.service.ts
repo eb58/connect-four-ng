@@ -4,8 +4,17 @@ export const DIM = { NCOL: 7, NROW: 6 };
 export enum FieldOccupiedType { empty, human, ai, neutral };
 export const range = (n: number) => [...Array(n).keys()]
 
+const feedX = (x: any, f: any) => f(x);
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
+const simpleCache = (insertCondition = (_: any) => true, c: any = {}) => ({
+  add: (key: any, val: any) => insertCondition(val) && (c[key] = val),
+  get: (key: any) => c[key]
+})
+const memoize = (f: any, hash: any, c = simpleCache()) =>
+  (...args: any[]) =>
+    feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
+
 const cloneState = (s: STATE) => ({
   ...s,
   moves: [...s.moves],
@@ -62,7 +71,7 @@ export const winningRows = allWinningRows.map(() => ({ cnt: 0, occupiedBy: Field
 const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
 
 const computeScoreOfNodeForAI = (state: STATE) =>
-  (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
+  state.winningRows.reduce((res, wr) => {
     if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt
     if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt
     return res
@@ -92,10 +101,7 @@ const move = (c: number, mstate: STATE) => {
   return mstate;
 }
 
-const negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-  const hashkey = state.hash + '|' + actDepth;
-  if (cache[hashkey]) return cache[hashkey]
-
+let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
   if (state.moves.length >= NFIELDS) return 0
   if (actDepth === maxDepth) return computeScoreOfNodeForAI(state);
@@ -106,13 +112,10 @@ const negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number
     if (alpha >= beta)
       break;
   }
-  if (Math.abs(score) > MAXVAL - 50) {
-    // console.log("Cachesize:", Object.keys(this.cache).length)
-    // if (this.cache[hashkey] && this.cache[hashkey] !== score) console.log("Argh!!!", hashkey, this.cache[hashkey], score)
-    if (!cache[hashkey]) cache[hashkey] = score
-  }
   return score;
 }
+
+negamax = memoize(negamax, (s: STATE) => s.hash, simpleCache(x => Math.abs(x) > MAXVAL - 50));
 
 @Injectable({ providedIn: 'root' })
 export class ConnectFourModelService {
@@ -162,6 +165,6 @@ export class ConnectFourModelService {
 }
 
 // just for debugging
-const toSymb = (x:any) => ` ${['_', 'H', 'C',][x]} `
+const toSymb = (x: any) => ` ${['_', 'H', 'C',][x]} `
 const dumpBoard = (state: STATE): string => '\n' + reshape(state.board.map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
 const dumpCacheItem = (s: string) => reshape(s.split('').map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
