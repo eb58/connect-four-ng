@@ -49,7 +49,7 @@ export class GameBoardComponent {
     if (0 > idxBoard || idxBoard > DIM.NCOL * DIM.NROW) { this.info = 'Kein erlaubter Zug'; return }
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
-    this.cf.move(c)
+    this.cf.doMove(c)
     if (this.cf.isMill()) { this.openInfoDialog('Gratuliere, du hast gewonnen!'); return }
     if (this.cf.isDraw()) { this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!'); return }
     this.actAsAI()
@@ -58,7 +58,7 @@ export class GameBoardComponent {
   actAsAI = () => {
     if (this.cf.state.moves.length <= 2) {
       const m = randomIntInRange(0, 6)
-      this.cf.move(m)
+      this.cf.doMove(m)
       this.info = `Mein letzter Zug: Spalte ${m + 1}`
       return
     }
@@ -72,7 +72,7 @@ export class GameBoardComponent {
       const bestMoves = this.cf.calcScoresOfMoves(depth)
       this.thinking = false
       console.log(`SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, DEPTH:${depth}, MOVES:[${this.cf.state.moves.join(',')}]`)
-      this.cf.move(bestMoves[0].move)
+      this.cf.doMove(bestMoves[0].move)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
       if (this.cf.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
@@ -86,7 +86,7 @@ export class GameBoardComponent {
     if (this.cf.state.aiTurn) setTimeout(() => {
       const x = this.cf.calcScoresOfMoves(gameSettings.maxDepth)[0]
       console.log(JSON.stringify(x))
-      this.cf.move(x.move)
+      this.cf.doMove(x.move)
     }, 100)
   }
 

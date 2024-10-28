@@ -58,6 +58,53 @@ const ORDER = Object.freeze([3, 4, 2, 5, 1, 6, 0])
 const MAXVAL = 1000000
 const NFIELDS = DIM.NCOL * DIM.NROW
 
+const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
+  
+const transitionGR = (i: FieldOccupiedType, o: FieldOccupiedType): FieldOccupiedType => { // i in / o out
+  if (o === FieldOccupiedType.empty) return i;
+  if (i === o) return i; // or o
+  return FieldOccupiedType.neutral;
+}
+
+const doMove = (c: number, mstate: STATE ) => {
+  const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
+  // update state of winning rows attached to idxBoard
+  winningRowsForFields[idxBoard].forEach(i => {
+    const wrState = mstate.winningRows[i];
+    const occupy = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;
+    wrState.occupiedBy = transitionGR(occupy, wrState.occupiedBy);
+    wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
+    mstate.isMill ||= wrState.cnt >= 4;
+  });
+  mstate.moves.push(c);
+  mstate.board[idxBoard] = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;;
+  mstate.heightCols[c]++;
+  mstate.aiTurn = !mstate.aiTurn;
+  mstate.hash = mstate.board.join('')
+  return mstate;
+}
+
+const computeScoreOfNodeForAI = (state: STATE) =>
+  (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
+    if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt
+    if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt
+    return res
+  }, 0)
+
+const negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+  if (state.isMill) return -MAXVAL + actDepth
+  if (state.moves.length >= NFIELDS) return 0
+  if (actDepth === maxDepth) return computeScoreOfNodeForAI(state);
+  let score = -MAXVAL;
+  for (const m of generateMoves(state)) {
+    score = Math.max(score, -negamax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
+    alpha = Math.max(alpha, score)
+    if (alpha >= beta)
+      break;
+  }
+  return score;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ConnectFourModelService {
   MAXVAL = MAXVAL;
@@ -73,7 +120,6 @@ export class ConnectFourModelService {
 
   state: STATE;
   cntNodesEvaluated = 0;
-  cache: any = {};
 
   constructor() {
     this.state = cloneState(this.origState);
@@ -81,61 +127,8 @@ export class ConnectFourModelService {
 
   init = () => this.state = cloneState(this.origState);
 
-  transitionGR = (i: FieldOccupiedType, o: FieldOccupiedType): FieldOccupiedType => { // i in / o out
-    if (o === FieldOccupiedType.empty) return i;
-    if (i === o) return i; // or o
-    return FieldOccupiedType.neutral;
-  }
-
-  move = (c: number, mstate: STATE = this.state) => {
-    const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
-    // update state of winning rows attached to idxBoard
-    winningRowsForFields[idxBoard].forEach(i => {
-      const wrState = mstate.winningRows[i];
-      const occupy = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;
-      wrState.occupiedBy = this.transitionGR(occupy, wrState.occupiedBy);
-      wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
-      mstate.isMill ||= wrState.cnt >= 4;
-    });
-    mstate.moves.push(c);
-    mstate.board[idxBoard] = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;;
-    mstate.heightCols[c]++;
-    mstate.aiTurn = !mstate.aiTurn;
-    mstate.hash = mstate.board.join('')
-    return mstate;
-  }
-
-  computeScoreOfNodeForAI = (state: STATE) =>
-    (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
-      if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt
-      if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt
-      return res
-    }, 0)
-
-  negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-    const hashkey = state.hash + '|' + actDepth;
-    if (this.cache[hashkey]) return this.cache[hashkey]
-
-    if (state.isMill) return -MAXVAL + actDepth
-    if (state.moves.length >= NFIELDS) return 0
-    if (actDepth === maxDepth) return this.computeScoreOfNodeForAI(state);
-    let score = -MAXVAL;
-    for (const m of this.generateMoves(state)) {
-      score = Math.max(score, -this.negamax(this.move(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
-      alpha = Math.max(alpha, score)
-      if (alpha >= beta)
-        break;
-    }
-    if (Math.abs(score) > MAXVAL - 50) {
-      // console.log("Cachesize:", Object.keys(this.cache).length)
-      // if (this.cache[hashkey] && this.cache[hashkey] !== score) console.log("Argh!!!", hashkey, this.cache[hashkey], score)
-      if (!this.cache[hashkey]) this.cache[hashkey] = score
-    }
-    return score;
-  }
-
   checkSimpleSolutions = (moves: number[], lev: number) => {
-    const scoresOfMoves = moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), lev, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
+    const scoresOfMoves = moves.map(move => ({ move, score: -negamax(doMove(move, cloneState(this.state)), lev, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
     if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there are moves to win!
     if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster 
     if (scoresOfMoves.filter(x => x.score > -MAXVAL + 50).length === 1) return scoresOfMoves; // there is only one move left!
@@ -148,14 +141,15 @@ export class ConnectFourModelService {
     const moves = this.generateMoves(this.state);
     return (
       [1, 2, 3].reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n), undefined) ||
-      moves.map(move => ({ move, score: -this.negamax(this.move(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
+      moves.map(move => ({ move, score: -negamax(doMove(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
     )
   }
 
   generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
   isMill = (): boolean => this.state.isMill
   isDraw = (): boolean => this.generateMoves(this.state).length === 0 && !this.state.isMill
-  doMoves = (moves: number[]): void => moves.forEach(v => this.move(v));
+  doMove = (m:number) => doMove(m, this.state)
+  doMoves = (moves: number[]): void => moves.forEach(v => this.doMove(v));
 
   // just for debugging
   mapSym = { [FieldOccupiedType.human]: ' H ', [FieldOccupiedType.ai]: ' C ', [FieldOccupiedType.empty]: ' _ ', [FieldOccupiedType.neutral]: ' § ' };
