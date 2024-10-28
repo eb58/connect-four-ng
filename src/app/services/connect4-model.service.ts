@@ -1,5 +1,33 @@
 import { Injectable } from '@angular/core';
-import { range, FieldOccupiedType, WinningRow, ConnectFourModelStaticService, DIM } from './connect4-model-static.service';
+
+export const range = (n: number) => [...Array(n).keys()]
+export enum FieldOccupiedType { empty, human, ai, neutral };
+export const DIM = { NCOL: 7, NROW: 6 };
+export type WinningRow = {
+  row?: number[],               // indices of winning row on board
+  cnt: number,                  // count of tiles in winning row 
+  occupiedBy: FieldOccupiedType // who is occupying winning row 
+}
+
+// let allWinningRows: WinningRow[] = []; // winning rows - length should be 69 for DIM (7x6)
+// let winningRowsForFields: number[][] = []; // list of indices on allWinningRows for each field of board
+
+const computeWinningRows = (r: number, c: number, dr: number, dc: number): number[][] => { // dr = delta row,  dc = delta col
+  const row = [];
+  while (r >= 0 && r < DIM.NROW && c >= 0 && c < DIM.NCOL && row.length < 4) { row.push(c + DIM.NCOL * r); c += dc; r += dr; }
+  return row.length < 4 ? [] : [row];
+}
+
+const winningRows: number[][] = range(DIM.NROW).reduce((acc: any, r: number) => range(DIM.NCOL).reduce((acc: any, c: number) => [
+  ...acc,
+  ...computeWinningRows(r, c, 0, 1),
+  ...computeWinningRows(r, c, 1, 1),
+  ...computeWinningRows(r, c, 1, 0),
+  ...computeWinningRows(r, c, -1, 1)
+], acc), [])
+const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, [])))
+const allWinningRows = Object.freeze(winningRows.map(() => ({ cnt: 0, occupiedBy: FieldOccupiedType.empty })))
+
 
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
@@ -36,7 +64,7 @@ export class ConnectFourModelService {
   origState: STATE = { // state that is used for evaluating 
     board: range(DIM.NCOL * DIM.NROW).map(() => 0),
     heightCols: range(DIM.NCOL).map(() => 0), // height of cols = [0, 0, 0, ..., 0];
-    winningRows: this.cfmodelstatic.allWinningRows,
+    winningRows: allWinningRows.map(r => ({ ...r })),
     aiTurn: false,
     isMill: false,
     hash: '',
@@ -47,7 +75,7 @@ export class ConnectFourModelService {
   cntNodesEvaluated = 0;
   cache: any = {};
 
-  constructor(private readonly cfmodelstatic: ConnectFourModelStaticService) {
+  constructor() {
     this.state = cloneState(this.origState);
   }
 
@@ -62,7 +90,7 @@ export class ConnectFourModelService {
   move = (c: number, mstate: STATE = this.state) => {
     const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
     // update state of winning rows attached to idxBoard
-    this.cfmodelstatic.winningRowsForFields[idxBoard].forEach(i => {
+    winningRowsForFields[idxBoard].forEach(i => {
       const wrState = mstate.winningRows[i];
       const occupy = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;
       wrState.occupiedBy = this.transitionGR(occupy, wrState.occupiedBy);
