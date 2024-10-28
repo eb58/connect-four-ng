@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 
 export const range = (n: number) => [...Array(n).keys()]
-export const feedX = (x: any, f: any) => f(x);
+const feedX = (x: any, f: any) => f(x);
+const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
+
 const simpleCache = (insertCondition = (_: any) => true, c: any = {}) => ({
   add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
   get: (key: any) => c[key]
@@ -37,9 +39,7 @@ const winningRows: number[][] = range(DIM.NROW).reduce((acc: any, r: number) => 
 const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, [])))
 const allWinningRows = Object.freeze(winningRows.map(() => ({ cnt: 0, occupiedBy: FieldOccupiedType.empty })))
 
-
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
-const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
 const cloneState = (s: STATE) => ({
   ...s,
   moves: [...s.moves],
@@ -149,7 +149,7 @@ export class ConnectFourModelService {
 
   calcScoresOfMoves = (maxDepth: number): MoveType[] => {
     if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
-    const moves = this.generateMoves(this.state);
+    const moves = generateMoves(this.state);
     return (
       [1, 2, 3].reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n), undefined) ||
       moves.map(move => ({ move, score: -negamax(doMove(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
@@ -158,15 +158,13 @@ export class ConnectFourModelService {
 
   generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
   isMill = (): boolean => this.state.isMill
-  isDraw = (): boolean => this.generateMoves(this.state).length === 0 && !this.state.isMill
+  isDraw = (): boolean => generateMoves(this.state).length === 0 && !this.state.isMill
   doMove = (m: number) => doMove(m, this.state)
   doMoves = (moves: number[]): void => moves.forEach(v => this.doMove(v));
-
-  // just for debugging
-  mapSym = { [FieldOccupiedType.human]: ' H ', [FieldOccupiedType.ai]: ' C ', [FieldOccupiedType.empty]: ' _ ', [FieldOccupiedType.neutral]: ' § ' };
-  dumpBoard = (state: STATE = this.state): string =>
-    range(DIM.NROW).reduce(
-      (acc, r) => acc + range(DIM.NCOL).reduce((acc, c) => acc + this.mapSym[state.board[c + DIM.NCOL * (DIM.NROW - r - 1)]], '') + '\n',
-      '\n')
-  dumpCacheItem = (s: string) => reshape(s.split('').map(x => this.mapSym[Number(x) as FieldOccupiedType]), 7).reverse().map((x: any) => x.join('')).join('\n')
+  dumpBoard = dumpBoard
 }
+
+// just for debugging
+const toSymb = (x: any) => ` ${['_', 'H', 'C',][x]} `
+const dumpBoard = (state: STATE): string => '\n' + reshape(state.board.map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
+const dumpCacheItem = (s: string) => reshape(s.split('').map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
