@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, filter } from 'rxjs';
-import { ConnectFourModelService,DIM, FieldOccupiedType, range } from '../../services/connect4-model.service';
+import { ConnectFourModelService } from '../../services/connect4-model.service';
+import { DIM, FieldOccupiedType, range } from '../../services/connect4-model-static.service';
 import { InfoDialog } from '../info-dialog/info-dialog.component';
 import { QuestionDialog } from '../question-dialog/question-dialog.component';
 import { SettingsDialog } from '../settings-dialog/settings-dialog.component';

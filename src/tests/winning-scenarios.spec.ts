@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ConnectFourModelService } from '../app/services/connect4-model.service';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 describe('tests for winning ', () => {
   let cf: ConnectFourModelService;
@@ -96,10 +96,9 @@ describe('tests for winning ', () => {
     // _  _  C  C  _  _  H
     // _  C  H  C  _  _  H
     // H  H  H  C  C  _  H
+    // console.log(cf.dumpBoard(cf.state))
     const m = cf.calcScoresOfMoves(10)
-    // console.log(m, cf.dumpBoard(cf.state))
-    expect(m[0].move).toBe(6); 
-    expect(m[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 20);
+    expect(m[0].move).toBe(5); expect(m[0].score).toBe(cf.MAXVAL - 10);
   })
 })
 
