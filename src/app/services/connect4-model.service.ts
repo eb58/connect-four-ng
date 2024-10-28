@@ -1,6 +1,15 @@
 import { Injectable } from '@angular/core';
 
 export const range = (n: number) => [...Array(n).keys()]
+export const feedX = (x: any, f: any) => f(x);
+const simpleCache = (insertCondition = (_: any) => true, c: any = {}) => ({
+  add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
+  get: (key: any) => c[key]
+})
+const memoize = (f: any, hash: any, c = simpleCache()) =>
+  (...args: any[]) =>
+    feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
+
 export enum FieldOccupiedType { empty, human, ai, neutral };
 export const DIM = { NCOL: 7, NROW: 6 };
 export type WinningRow = {
@@ -59,14 +68,14 @@ const MAXVAL = 1000000
 const NFIELDS = DIM.NCOL * DIM.NROW
 
 const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
-  
+
 const transitionGR = (i: FieldOccupiedType, o: FieldOccupiedType): FieldOccupiedType => { // i in / o out
   if (o === FieldOccupiedType.empty) return i;
   if (i === o) return i; // or o
   return FieldOccupiedType.neutral;
 }
 
-const doMove = (c: number, mstate: STATE ) => {
+const doMove = (c: number, mstate: STATE) => {
   const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
   // update state of winning rows attached to idxBoard
   winningRowsForFields[idxBoard].forEach(i => {
@@ -91,7 +100,7 @@ const computeScoreOfNodeForAI = (state: STATE) =>
     return res
   }, 0)
 
-const negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
   if (state.moves.length >= NFIELDS) return 0
   if (actDepth === maxDepth) return computeScoreOfNodeForAI(state);
@@ -104,6 +113,8 @@ const negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number
   }
   return score;
 }
+
+negamax = memoize(negamax, (s: STATE) => s.hash, simpleCache(x => Math.abs(x) > MAXVAL - 50));
 
 @Injectable({ providedIn: 'root' })
 export class ConnectFourModelService {
@@ -148,7 +159,7 @@ export class ConnectFourModelService {
   generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
   isMill = (): boolean => this.state.isMill
   isDraw = (): boolean => this.generateMoves(this.state).length === 0 && !this.state.isMill
-  doMove = (m:number) => doMove(m, this.state)
+  doMove = (m: number) => doMove(m, this.state)
   doMoves = (moves: number[]): void => moves.forEach(v => this.doMove(v));
 
   // just for debugging
