@@ -12,15 +12,7 @@ const memoize = (f: any, hash: any, c = simpleCache()) =>
   (...args: any[]) =>
     feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
 
-export enum FieldOccupiedType { empty, human, ai, neutral };
 export const DIM = { NCOL: 7, NROW: 6 };
-export type WinningRow = {
-  cnt: number,                  // count of tiles in winning row 
-  occupiedBy: FieldOccupiedType // who is occupying winning row 
-}
-
-// let allWinningRows: WinningRow[] = []; // winning rows - length should be 69 for DIM (7x6)
-// let winningRowsForFields: number[][] = []; // list of indices on allWinningRows for each field of board
 
 const computeWinningRows = (r: number, c: number, dr: number, dc: number): number[][] => { // dr = delta row,  dc = delta col
   const row = [];
@@ -28,15 +20,17 @@ const computeWinningRows = (r: number, c: number, dr: number, dc: number): numbe
   return row.length < 4 ? [] : [row];
 }
 
-const winningRows: number[][] = range(DIM.NROW).reduce((acc: any, r: number) => range(DIM.NCOL).reduce((acc: any, c: number) => [
+// winning rows - length should be 69 for DIM (7x6)
+export const winningRows: number[][] = range(DIM.NROW).reduce((acc: any, r: number) => range(DIM.NCOL).reduce((acc: any, c: number) => [
   ...acc,
   ...computeWinningRows(r, c, 0, 1),
   ...computeWinningRows(r, c, 1, 1),
   ...computeWinningRows(r, c, 1, 0),
   ...computeWinningRows(r, c, -1, 1)
 ], acc), [])
+
+// list of indices on allWinningRows for each field of board
 export const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, [])))
-export const allWinningRows = Object.freeze(winningRows.map(() => ({ cnt: 0, occupiedBy: FieldOccupiedType.empty })))
 
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const cloneState = (s: STATE) => ({
@@ -44,17 +38,19 @@ const cloneState = (s: STATE) => ({
   moves: [...s.moves],
   board: [...s.board],
   heightCols: [...s.heightCols],
-  winningRows: s.winningRows.map((wr: WinningRow) => ({ ...wr }))
+  winningRowsCounter: [...s.winningRowsCounter],
+  // winningRowsActive: [...s.winningRowsActive]
 })
 
 export type STATE = {
   hash: string;
-  moves: number[],            // moves - list of columns (0, 1, ... , 6) 
-  board: FieldOccupiedType[]; // state of board
-  heightCols: number[];       // height of columns
-  winningRows: WinningRow[];  // state of winning rows
-  aiTurn: boolean             // who's turn is it
-  isMill: boolean,            // we have four in a row!
+  moves: number[],             // moves - list of columns (0, 1, ... , 6) 
+  board: number[];  // state of board
+  heightCols: number[];        // height of columns
+  winningRowsCounter: number[];// counter of winning rows > 0 for AI; < 0 for human
+  // winningRowsActive: number[]; //
+  aiTurn: boolean              // who's turn is it
+  isMill: boolean,             // we have four in a row!
 }
 
 export type MoveType = {
@@ -68,41 +64,37 @@ const NFIELDS = DIM.NCOL * DIM.NROW
 
 const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
 
-const transitionGR = (i: FieldOccupiedType, o: FieldOccupiedType): FieldOccupiedType => { // i in / o out
-  if (o === FieldOccupiedType.empty) return i;
-  if (i === o) return i; // or o
-  return FieldOccupiedType.neutral;
-}
+const sign = (x: number) => x < 0 ? -1 : +1
 
 const doMove = (c: number, mstate: STATE) => {
   const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
+
   // update state of winning rows attached to idxBoard
-  winningRowsForFields[idxBoard].forEach(i => {
-    const wrState = mstate.winningRows[i];
-    const occupy = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;
-    wrState.occupiedBy = transitionGR(occupy, wrState.occupiedBy);
-    wrState.cnt += (wrState.occupiedBy !== FieldOccupiedType.neutral) ? 1 : 0;
-    mstate.isMill ||= wrState.cnt >= 4;
-  });
+  winningRowsForFields[idxBoard]
+    //.filter(i => mstate.winningRowsActive.includes(i))
+    //.filter(i => mstate.winningRowsCounter[i] === 0 || sign(mstate.winningRowsCounter[i]) === (mstate.aiTurn ? 1 : -1))
+    .forEach(i => {
+        mstate.winningRowsCounter[i] += mstate.aiTurn ? 1 : -1
+        mstate.isMill ||= Math.abs(mstate.winningRowsCounter[i]) >= 4;
+    });
+    // console.log( mstate.winningRowsCounter.join(', ') )
+  // mstate.winningRowsActive = mstate.winningRowsActive.filter(i => mstate.winningRowsCounter[i] !== 10000)
+
+
   mstate.moves.push(c);
-  mstate.board[idxBoard] = mstate.aiTurn ? FieldOccupiedType.ai : FieldOccupiedType.human;;
+  mstate.board[idxBoard] = mstate.aiTurn ? 1 : -1;
   mstate.heightCols[c]++;
   mstate.aiTurn = !mstate.aiTurn;
   mstate.hash = mstate.board.join('')
   return mstate;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) =>
-  (state.aiTurn ? 1 : -1) * state.winningRows.reduce((res, wr) => {
-    if (wr.occupiedBy === FieldOccupiedType.ai) return res + wr.cnt
-    if (wr.occupiedBy === FieldOccupiedType.human) return res - wr.cnt
-    return res
-  }, 0)
+const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + cnt**3, 0)
 
 let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
   if (state.moves.length >= NFIELDS) return 0
-  if (actDepth === maxDepth) return computeScoreOfNodeForAI(state);
+  if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
   let score = -MAXVAL;
   for (const m of generateMoves(state)) {
     score = Math.max(score, -negamax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
@@ -121,7 +113,8 @@ export class ConnectFourModelService {
   origState: STATE = { // state that is used for evaluating 
     board: range(DIM.NCOL * DIM.NROW).map(() => 0),
     heightCols: range(DIM.NCOL).map(() => 0), // height of cols = [0, 0, 0, ..., 0];
-    winningRows: allWinningRows.map(r => ({ ...r })),
+    winningRowsCounter: winningRows.map(() => 0),
+    // winningRowsActive: winningRows.map((_, idx) => idx),
     aiTurn: false,
     isMill: false,
     hash: '',
@@ -129,8 +122,7 @@ export class ConnectFourModelService {
   };
 
   state: STATE;
-  cntNodesEvaluated = 0;
-
+  
   constructor() {
     this.state = cloneState(this.origState);
   }
@@ -164,6 +156,6 @@ export class ConnectFourModelService {
 }
 
 // just for debugging
-const toSymb = (x: any) => ` ${['_', 'H', 'C',][x]} `
+const toSymb = (x: any) => ` ${[, 'C', '_', 'H'][x + 1]} `
 const dumpBoard = (state: STATE): string => '\n' + reshape(state.board.map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
 const dumpCacheItem = (s: string) => reshape(s.split('').map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')

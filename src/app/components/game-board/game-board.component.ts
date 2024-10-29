@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, filter } from 'rxjs';
-import { ConnectFourModelService, DIM, FieldOccupiedType, range } from '../../services/connect4-model.service';
+import { ConnectFourModelService, DIM, range } from '../../services/connect4-model.service';
 import { InfoDialog } from '../info-dialog/info-dialog.component';
 import { QuestionDialog } from '../question-dialog/question-dialog.component';
 import { SettingsDialog } from '../settings-dialog/settings-dialog.component';
@@ -125,8 +125,8 @@ export class GameBoardComponent {
 
   getClass = (row: number, col: number): string => {
     const x = col + DIM.NCOL * (DIM.NROW - row - 1);
-    if (this.cf.state.board[x] === FieldOccupiedType.human) return 'human'
-    if (this.cf.state.board[x] === FieldOccupiedType.ai) return 'ai'
+    if (this.cf.state.board[x] === -1) return 'human'
+    if (this.cf.state.board[x] === 1) return 'ai'
     return ''
   }
 }
