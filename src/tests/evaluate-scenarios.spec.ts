@@ -9,6 +9,32 @@ describe('tests for draw scenarios', () => {
         cf = TestBed.inject(ConnectFourModelService);
     });
 
+    test('scenario A', () => {
+        cf.state.aiTurn = true
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        const s = cf.calcScoresOfMoves(6)
+        expect(s.every(({ score }) => score > 0)).toBeTruthy();
+    });
+
+    test('scenario B', () => {
+        cf.doMove(0)
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // _  _  _  _  _  _  _
+        // H  _  _  _  _  _  _
+        const s = cf.calcScoresOfMoves(6)
+        console.log(s)
+        expect(s[0].score).toBeGreaterThan(0);
+        expect(s.every(({ score }) => score >= 0)).toBeTruthy();
+    });
+
     test('scenario 1', () => {
         cf.doMoves([3, 3, 4])
         // _  _  _  _  _  _  _
