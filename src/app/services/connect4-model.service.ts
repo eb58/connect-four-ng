@@ -66,16 +66,15 @@ const doMove = (c: number, mstate: STATE) => {
   const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
 
   // update state of winning rows attached to idxBoard
-  const x = mstate.aiTurn ? 1 : -1
   winningRowsForFields[idxBoard].forEach(i => {
-    mstate.winningRowsCounter[i] += x;
+    mstate.winningRowsCounter[i] += mstate.aiTurn ? 1 : -1;
     mstate.isMill = mstate.isMill || abs(mstate.winningRowsCounter[i]) >= 4
   })
-  mstate.board[idxBoard] = mstate.aiTurn ? 1 : -1;
+  mstate.cntMoves++;
   mstate.heightCols[c]++;
   mstate.aiTurn = !mstate.aiTurn;
+  mstate.board[idxBoard] = mstate.aiTurn ? 1 : -1;
   mstate.hash = mstate.board.join('')
-  mstate.cntMoves++;
   return mstate;
 }
 
