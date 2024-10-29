@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 
 const range = (n: number) => [...Array(n).keys()]
 const abs = (x: number) => x < 0 ? -x : x
+const sign = (x: number) => x < 0 ? -1 : 1
 const feedX = (x: any, f: any) => f(x);
 const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
 
@@ -67,6 +68,8 @@ const doMove = (c: number, mstate: STATE) => {
 
   // update state of winning rows attached to idxBoard
   winningRowsForFields[idxBoard].forEach(i => {
+    if (mstate.winningRowsCounter[i] === -99999) return;
+    if (mstate.winningRowsCounter[i] != 0 && sign(mstate.winningRowsCounter[i]) !== (mstate.aiTurn ? 1 : -1)) { mstate.winningRowsCounter[i] = -99999; return }
     mstate.winningRowsCounter[i] += mstate.aiTurn ? 1 : -1;
     mstate.isMill = mstate.isMill || abs(mstate.winningRowsCounter[i]) >= 4
   })
@@ -78,7 +81,7 @@ const doMove = (c: number, mstate: STATE) => {
   return mstate;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + cnt ** 3, 0)
+const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === -99999 ? 0 : cnt ** 3), 0)
 
 let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
@@ -95,6 +98,50 @@ let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, 
 }
 
 negamax = memoize(negamax, (s: STATE) => s.hash, cache(x => abs(x) > MAXVAL - 50));
+
+// function pvs(node, depth, α, β, color)
+// if node is a terminal node or depth = 0
+//     return color × the heuristic value of node, 0
+// for each child_index, child of enumerate(node): (*cycle over nodes and their indices*)
+//     if child is first child
+//         score, _ := pvs(child, depth-1, -β, -α, -color)
+//         score *= -1
+//     else
+//         score, _ := pvs(child, depth-1, -α-1, -α, -color)       (* search with a null window *)
+//         score *= -1
+//         if α < score < β                                      (* if it failed high,
+//             score, _ := pvs(child, depth-1, -β, -score, -color)        do a full re-search *)
+//             score *= -1
+//     α := max(α, score)
+//     if α ≥ β
+//         break                                            (* beta cut-off *)
+// return α, node_index
+
+let negascout = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+
+  if (state.isMill) return -MAXVAL + actDepth
+  if (state.cntMoves >= NFIELDS) return 0
+  if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
+
+  const moves = generateMoves(state)
+  for (let i = 0; i < moves.length; i++) {
+    let score;
+    if (i === 0) {
+      score = -negascout(doMove(moves[i], cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)
+    } else {
+      score = -negascout(doMove(moves[i], cloneState(state)), maxDepth, actDepth + 1, -alpha - 1, -alpha)
+      if (alpha < score && score < beta) score = -negascout(doMove(moves[i], cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)
+
+      alpha = Math.max(alpha, score)
+      if (alpha >= beta)
+        break;
+    }
+  }
+  return alpha;
+}
+// negascout = memoize(negascout, (s: STATE) => s.hash, cache(x => abs(x) > MAXVAL - 50));
+
+const minmax = negamax
 
 @Injectable({ providedIn: 'root' })
 export class ConnectFourModelService {

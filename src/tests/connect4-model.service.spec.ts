@@ -50,6 +50,7 @@ test('draw - board almost full', () => {
   // H  H  C  H  C  C  C
   expect(cf.state.cntMoves).toBe(39)
   const m = cf.calcScoresOfMoves(6)
+  //console.log( m )
   expect(m.length).toBe(2)
   expect(m[0].move === 1 || m[0].move === 4).toBeTruthy()
   expect(m[0].score === 0).toBeTruthy() // -0!!
@@ -91,6 +92,7 @@ test('loosing 3', () => {
   // C  _  H  H  C  _  _
   // C  C  C  H  H  _  _
   const m = cf.calcScoresOfMoves(6)
+  //console.log( m )
   expect(m[0].move).toBe(3); expect(m[0].score).toBe(-cf.MAXVAL + 3);
 });
 
@@ -119,6 +121,7 @@ test('eval 1', () => {
   // _  _  _  C  _  _  _
   // _  _  _  H  H  _  _
   const m = cf.calcScoresOfMoves(6)
+  // console.log( m )
   expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
 });
 
@@ -154,7 +157,7 @@ test('eval 4', () => {
   // _  _  _  _  _  _  _ 
   // C  _  _  H  H  _  _
   const m = cf.calcScoresOfMoves(4)
-  // console.log(m, cf.dumpBoard());
+  // console.log(m, cf.dumpBoard(cf.state.board));
   expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
 });
 
@@ -269,10 +272,7 @@ test('winning 7', () => {
   // _  _  C  C  _  _  H
   // _  C  H  C  _  _  H
   // H  H  H  C  C  _  H
-  const m = cf.calcScoresOfMoves(10)
-  expect(m[0].move).toBe(5); expect(m[0].score).toBeGreaterThan(cf.MAXVAL - 20);
+  const scores = cf.calcScoresOfMoves(10)
+  // console.log(scores)
+  scores.forEach(m => expect(m.score).toBeGreaterThan(cf.MAXVAL - 20));
 })
-
-
-
-
