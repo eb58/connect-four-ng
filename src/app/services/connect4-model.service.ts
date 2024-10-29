@@ -36,15 +36,14 @@ export const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const cloneState = (s: STATE) => ({
   ...s,
-  moves: [...s.moves],
   board: [...s.board],
   heightCols: [...s.heightCols],
   winningRowsCounter: [...s.winningRowsCounter],
 })
 
 export type STATE = {
+  cntMoves: number;
   hash: string;
-  moves: number[],             // moves - list of columns (0, 1, ... , 6) 
   board: number[];  // state of board
   heightCols: number[];        // height of columns
   winningRowsCounter: number[];// counter of winning rows > 0 for AI; < 0 for human
@@ -72,11 +71,11 @@ const doMove = (c: number, mstate: STATE) => {
     mstate.winningRowsCounter[i] += x;
     mstate.isMill = mstate.isMill || abs(mstate.winningRowsCounter[i]) >= 4
   })
-  mstate.moves.push(c);
   mstate.board[idxBoard] = mstate.aiTurn ? 1 : -1;
   mstate.heightCols[c]++;
   mstate.aiTurn = !mstate.aiTurn;
   mstate.hash = mstate.board.join('')
+  mstate.cntMoves++;
   return mstate;
 }
 
@@ -84,7 +83,7 @@ const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduc
 
 let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
-  if (state.moves.length >= NFIELDS) return 0
+  if (state.cntMoves >= NFIELDS) return 0
   if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
   let score = -MAXVAL;
   for (const m of generateMoves(state)) {
@@ -102,22 +101,26 @@ negamax = memoize(negamax, (s: STATE) => s.hash, cache(x => abs(x) > MAXVAL - 50
 export class ConnectFourModelService {
   MAXVAL = MAXVAL;
   origState: STATE = { // state that is used for evaluating 
+    cntMoves: 0,
     board: range(DIM.NCOL * DIM.NROW).map(() => 0),
     heightCols: range(DIM.NCOL).map(() => 0), // height of cols = [0, 0, 0, ..., 0];
     winningRowsCounter: winningRows.map(() => 0),
     aiTurn: false,
     isMill: false,
     hash: '',
-    moves: [],
   };
 
   state: STATE;
+  moves: number[] = []
 
   constructor() {
     this.state = cloneState(this.origState);
   }
 
-  init = () => this.state = cloneState(this.origState);
+  init = () => {
+    this.state = cloneState(this.origState);
+    this.moves = [];
+  }
 
   checkSimpleSolutions = (moves: number[], lev: number) => {
     const scoresOfMoves = moves.map(move => ({ move, score: -negamax(doMove(move, cloneState(this.state)), lev, 0, -MAXVAL, +MAXVAL) })).toSorted(cmpByScore)
@@ -140,7 +143,7 @@ export class ConnectFourModelService {
   generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
   isMill = (): boolean => this.state.isMill
   isDraw = (): boolean => generateMoves(this.state).length === 0 && !this.state.isMill
-  doMove = (m: number) => doMove(m, this.state)
+  doMove = (m: number) => { doMove(m, this.state); this.moves.push(m); }
   doMoves = (moves: number[]): void => moves.forEach(v => this.doMove(v));
   dumpBoard = dumpBoard
 }

@@ -18,7 +18,7 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
   expect(cf.state.board.length).toBe(DIM.NCOL * DIM.NROW);
   expect(cf.state.board).toEqual(range(DIM.NCOL * DIM.NROW).map(() => 0));
-  expect(cf.state.moves).toEqual([]);
+  expect(cf.state.cntMoves).toBe(0);
   expect(cf.state.aiTurn).toBe(false);
   expect(cf.state.heightCols).toEqual(range(cf.origState.heightCols.length).map(() => 0));
   expect(cf.isMill()).toBe(false);
@@ -36,7 +36,7 @@ test('whoseTurn works', () => {
 test('draw - full board', () => {
   cf.state.aiTurn = true
   cf.doMoves([3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4, 1, 4])
-  expect(cf.state.moves.length).toBe(DIM.NCOL * DIM.NROW)
+  expect(cf.state.cntMoves).toBe(DIM.NCOL * DIM.NROW)
   expect(cf.calcScoresOfMoves(6).length).toBe(0)
 });
 
@@ -48,7 +48,7 @@ test('draw - board almost full', () => {
   // H  C  C  C  H  C  C                                                                 
   // C  H  C  H  C  H  C
   // H  H  C  H  C  C  C
-  expect(cf.state.moves.length).toBe(39)
+  expect(cf.state.cntMoves).toBe(39)
   const m = cf.calcScoresOfMoves(6)
   expect(m.length).toBe(2)
   expect(m[0].move === 1 || m[0].move === 4).toBeTruthy()

@@ -57,7 +57,7 @@ export class GameBoardComponent {
   }
 
   actAsAI = () => {
-    if (this.cf.state.moves.length <= 1) {
+    if (this.cf.moves.length <= 1) {
       const m = randomIntInRange(0, 6)
       this.cf.doMove(m)
       this.info = `Mein letzter Zug: Spalte ${m + 1}`
@@ -67,12 +67,12 @@ export class GameBoardComponent {
     this.thinking = true
     setTimeout(() => {
       const depth = this.gameSettings.maxDepth
-        + (this.cf.state.moves.length > 10 ? 2 : 0)
-        + (this.cf.state.moves.length > 20 ? 2 : 0)
-        + (this.cf.state.moves.length > 25 ? 2 : 0)
+        + (this.cf.moves.length > 10 ? 2 : 0)
+        + (this.cf.moves.length > 20 ? 2 : 0)
+        + (this.cf.moves.length > 25 ? 2 : 0)
       const bestMoves = this.cf.calcScoresOfMoves(depth)
       this.thinking = false
-      console.log(`SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, DEPTH:${depth}, MOVES:[${this.cf.state.moves.join(',')}]`)
+      console.log(`SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, DEPTH:${depth}, MOVES:[${this.cf.moves.join(',')}]`)
       this.cf.doMove(bestMoves[0].move)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
@@ -93,7 +93,7 @@ export class GameBoardComponent {
 
   undoMove = () => {
     this.info = ''
-    this.restart(this.gameSettings, this.cf.state.moves.slice(0, -2))
+    this.restart(this.gameSettings, this.cf.moves.slice(0, -2))
   }
 
   restartGame = () => {
