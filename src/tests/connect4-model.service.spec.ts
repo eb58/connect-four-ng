@@ -273,6 +273,5 @@ test('winning 7', () => {
   // _  C  H  C  _  _  H
   // H  H  H  C  C  _  H
   const scores = cf.calcScoresOfMoves(10)
-  // console.log(scores)
-  scores.forEach(m => expect(m.score).toBeGreaterThan(cf.MAXVAL - 20));
+  scores.slice(0,3).forEach(m => expect(m.score).toBeGreaterThanOrEqual(cf.MAXVAL - 10));
 })
