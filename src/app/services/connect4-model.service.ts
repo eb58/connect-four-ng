@@ -15,7 +15,6 @@ const memoize = (f: any, hash: any, c = simpleCache()) =>
 export enum FieldOccupiedType { empty, human, ai, neutral };
 export const DIM = { NCOL: 7, NROW: 6 };
 export type WinningRow = {
-  row?: number[],               // indices of winning row on board
   cnt: number,                  // count of tiles in winning row 
   occupiedBy: FieldOccupiedType // who is occupying winning row 
 }
@@ -36,8 +35,8 @@ const winningRows: number[][] = range(DIM.NROW).reduce((acc: any, r: number) => 
   ...computeWinningRows(r, c, 1, 0),
   ...computeWinningRows(r, c, -1, 1)
 ], acc), [])
-const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, [])))
-const allWinningRows = Object.freeze(winningRows.map(() => ({ cnt: 0, occupiedBy: FieldOccupiedType.empty })))
+export const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, [])))
+export const allWinningRows = Object.freeze(winningRows.map(() => ({ cnt: 0, occupiedBy: FieldOccupiedType.empty })))
 
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const cloneState = (s: STATE) => ({
