@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { ConnectFourModelService, DIM, range, winningRows, winningRowsForFields } from '../app/services/connect4-model.service';
+import { ConnectFourModelService, DIM, winningRows, winningRowsForFields } from '../app/services/connect4-model.service';
 
+const range = (n: number) => [...Array(n).keys()]
 let cf: ConnectFourModelService;
 
 beforeEach(() => {

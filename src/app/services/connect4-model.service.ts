@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
 
-export const range = (n: number) => [...Array(n).keys()]
+const range = (n: number) => [...Array(n).keys()]
+const abs = (x: number) => x < 0 ? -x : x
 const feedX = (x: any, f: any) => f(x);
 const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
 
-const simpleCache = (insertCondition = (_: any) => true, c: any = {}) => ({
+const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
   add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
   get: (key: any) => c[key]
 })
-const memoize = (f: any, hash: any, c = simpleCache()) =>
+const memoize = (f: any, hash: any, c = cache()) =>
   (...args: any[]) =>
     feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
 
@@ -39,7 +40,6 @@ const cloneState = (s: STATE) => ({
   board: [...s.board],
   heightCols: [...s.heightCols],
   winningRowsCounter: [...s.winningRowsCounter],
-  // winningRowsActive: [...s.winningRowsActive]
 })
 
 export type STATE = {
@@ -48,7 +48,6 @@ export type STATE = {
   board: number[];  // state of board
   heightCols: number[];        // height of columns
   winningRowsCounter: number[];// counter of winning rows > 0 for AI; < 0 for human
-  // winningRowsActive: number[]; //
   aiTurn: boolean              // who's turn is it
   isMill: boolean,             // we have four in a row!
 }
@@ -64,23 +63,15 @@ const NFIELDS = DIM.NCOL * DIM.NROW
 
 const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
 
-const sign = (x: number) => x < 0 ? -1 : +1
-
 const doMove = (c: number, mstate: STATE) => {
   const idxBoard = c + DIM.NCOL * mstate.heightCols[c]
 
   // update state of winning rows attached to idxBoard
-  winningRowsForFields[idxBoard]
-    //.filter(i => mstate.winningRowsActive.includes(i))
-    //.filter(i => mstate.winningRowsCounter[i] === 0 || sign(mstate.winningRowsCounter[i]) === (mstate.aiTurn ? 1 : -1))
-    .forEach(i => {
-        mstate.winningRowsCounter[i] += mstate.aiTurn ? 1 : -1
-        mstate.isMill ||= Math.abs(mstate.winningRowsCounter[i]) >= 4;
-    });
-    // console.log( mstate.winningRowsCounter.join(', ') )
-  // mstate.winningRowsActive = mstate.winningRowsActive.filter(i => mstate.winningRowsCounter[i] !== 10000)
-
-
+  const x = mstate.aiTurn ? 1 : -1
+  winningRowsForFields[idxBoard].forEach(i => {
+    mstate.winningRowsCounter[i] += x;
+    mstate.isMill = mstate.isMill || abs(mstate.winningRowsCounter[i]) >= 4
+  })
   mstate.moves.push(c);
   mstate.board[idxBoard] = mstate.aiTurn ? 1 : -1;
   mstate.heightCols[c]++;
@@ -89,7 +80,7 @@ const doMove = (c: number, mstate: STATE) => {
   return mstate;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + cnt**3, 0)
+const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + cnt ** 3, 0)
 
 let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
@@ -105,7 +96,7 @@ let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, 
   return score;
 }
 
-negamax = memoize(negamax, (s: STATE) => s.hash, simpleCache(x => Math.abs(x) > MAXVAL - 50));
+negamax = memoize(negamax, (s: STATE) => s.hash, cache(x => abs(x) > MAXVAL - 50));
 
 @Injectable({ providedIn: 'root' })
 export class ConnectFourModelService {
@@ -114,7 +105,6 @@ export class ConnectFourModelService {
     board: range(DIM.NCOL * DIM.NROW).map(() => 0),
     heightCols: range(DIM.NCOL).map(() => 0), // height of cols = [0, 0, 0, ..., 0];
     winningRowsCounter: winningRows.map(() => 0),
-    // winningRowsActive: winningRows.map((_, idx) => idx),
     aiTurn: false,
     isMill: false,
     hash: '',
@@ -122,7 +112,7 @@ export class ConnectFourModelService {
   };
 
   state: STATE;
-  
+
   constructor() {
     this.state = cloneState(this.origState);
   }
@@ -157,5 +147,5 @@ export class ConnectFourModelService {
 
 // just for debugging
 const toSymb = (x: any) => ` ${[, 'C', '_', 'H'][x + 1]} `
-const dumpBoard = (state: STATE): string => '\n' + reshape(state.board.map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
+const dumpBoard = (board: number[]): string => '\n' + reshape(board.map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')
 const dumpCacheItem = (s: string) => reshape(s.split('').map(toSymb), 7).reverse().map((x: any) => x.join('')).join('\n')

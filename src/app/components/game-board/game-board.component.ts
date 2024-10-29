@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, filter } from 'rxjs';
-import { ConnectFourModelService, DIM, range } from '../../services/connect4-model.service';
+import { ConnectFourModelService, DIM } from '../../services/connect4-model.service';
 import { InfoDialog } from '../info-dialog/info-dialog.component';
 import { QuestionDialog } from '../question-dialog/question-dialog.component';
 import { SettingsDialog } from '../settings-dialog/settings-dialog.component';
+const range = (n: number) => [...Array(n).keys()]
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 const randomIntInRange = (min: number, max: number) => Math.floor(randomInRange(min, max + 1));
 
