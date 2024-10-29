@@ -56,7 +56,7 @@ export class GameBoardComponent {
   }
 
   actAsAI = () => {
-    if (this.cf.state.moves.length <= 2) {
+    if (this.cf.state.moves.length <= 1) {
       const m = randomIntInRange(0, 6)
       this.cf.doMove(m)
       this.info = `Mein letzter Zug: Spalte ${m + 1}`
