@@ -1,34 +1,39 @@
 #field {
-    background-color: #070;
-    width: 100%;
+  background-color: #070;
+  width: 100%;
 }
 
 td {
-    border-collapse: separate;
-    border: 2px solid #070;
-    padding-bottom: 15%;
-    /* = width for a square aspect ratio */
-    background: #ddd;
-    border-radius: 50%;
+  border-collapse: separate;
+  border: 2px solid #070;
+  padding-bottom: 15%;
+  /* = width for a square aspect ratio */
+  background: #ddd;
+  border-radius: 50%;
 }
 
-td.human { background: #a00; }
-td.ai { background: #00a;}
+td.human {
+  background: #a00;
+}
+
+td.ai {
+  background: #00a;
+}
 
 #field.button {
-    display: block;
-    width: 95%;
-    margin-bottom: 5px;
+  display: block;
+  width: 95%;
+  margin-bottom: 5px;
 }
 
 #field.col1 {
-    float: left;
-    width: 300px;
+  float: left;
+  width: 300px;
 }
 
 #field.col2 {
-    background: #c4ced3;
-    margin-left: 25em;
-    width: 200px;
-    padding: 10px;
+  background: #c4ced3;
+  margin-left: 25em;
+  width: 200px;
+  padding: 10px;
 }

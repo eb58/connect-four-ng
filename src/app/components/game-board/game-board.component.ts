@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { Observable, filter } from 'rxjs';
-import { ConnectFourModelService, DIM } from '../../services/connect4-model.service';
-import { InfoDialog } from '../info-dialog/info-dialog.component';
-import { QuestionDialog } from '../question-dialog/question-dialog.component';
-import { SettingsDialog } from '../settings-dialog/settings-dialog.component';
+import {Component} from '@angular/core';
+import {MatDialog} from '@angular/material/dialog';
+import {Observable, filter} from 'rxjs';
+import {ConnectFourModelService, DIM} from '../../services/connect4-model.service';
+import {InfoDialog} from '../info-dialog/info-dialog.component';
+import {QuestionDialog} from '../question-dialog/question-dialog.component';
+import {SettingsDialog} from '../settings-dialog/settings-dialog.component';
+
 const range = (n: number) => [...Array(n).keys()]
 const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 const randomIntInRange = (min: number, max: number) => Math.floor(randomInRange(min, max + 1));
@@ -22,7 +23,7 @@ export type GameSettings = {
   styleUrls: ['./game-board.component.css']
 })
 export class GameBoardComponent {
-  gameSettings = JSON.parse(localStorage.getItem('connect-4-settings') || 'false') || { whoBegins: 'human', maxDepth: 6 };
+  gameSettings = JSON.parse(localStorage.getItem('connect-4-settings') || 'false') || {whoBegins: 'human', maxDepth: 6};
   info = 'Bitte klicke in die Spalte, in die du einen Stein einwerfen möchtest.'
 
   NROW = range(DIM.NROW);
@@ -36,23 +37,40 @@ export class GameBoardComponent {
     }
   }
 
-  openInfoDialog = (info: string) => this.dialog.open(InfoDialog, { data: { title: 'Info', info } });
-  openQuestionDialog = (question: string): Observable<string> => this.dialog.open(QuestionDialog, { data: { title: 'Frage', question } }).afterClosed()
-  openSettingsDialog = (gameSettings: GameSettings): Observable<GameSettings> => this.dialog.open(SettingsDialog, { data: gameSettings }).afterClosed()
+  openInfoDialog = (info: string) => this.dialog.open(InfoDialog, {data: {title: 'Info', info}});
+  openQuestionDialog = (question: string): Observable<string> => this.dialog.open(QuestionDialog, {
+    data: {
+      title: 'Frage',
+      question
+    }
+  }).afterClosed()
+  openSettingsDialog = (gameSettings: GameSettings): Observable<GameSettings> => this.dialog.open(SettingsDialog, {data: gameSettings}).afterClosed()
 
   onClick = (c: number) => {
     if (this.thinking) return
-    if (this.cf.state.aiTurn) { this.info = ' Du bist nicht am Zug'; return; }
+    if (this.cf.state.aiTurn) {
+      this.info = ' Du bist nicht am Zug';
+      return;
+    }
     if (this.cf.isMill()) this.info = 'Das Spiel ist zuende. Glückwunsch, du hast gewonnen.'
     if (this.cf.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
 
     const idxBoard = c + DIM.NCOL * this.cf.state.heightCols[c]
-    if (0 > idxBoard || idxBoard > DIM.NCOL * DIM.NROW) { this.info = 'Kein erlaubter Zug'; return }
+    if (0 > idxBoard || idxBoard > DIM.NCOL * DIM.NROW) {
+      this.info = 'Kein erlaubter Zug';
+      return
+    }
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
     this.cf.doMove(c)
-    if (this.cf.isMill()) { this.openInfoDialog('Gratuliere, du hast gewonnen!'); return }
-    if (this.cf.isDraw()) { this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!'); return }
+    if (this.cf.isMill()) {
+      this.openInfoDialog('Gratuliere, du hast gewonnen!');
+      return
+    }
+    if (this.cf.isDraw()) {
+      this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
+      return
+    }
     this.actAsAI()
   }
 
@@ -107,7 +125,7 @@ export class GameBoardComponent {
         // moves = [2, 6, 2, 4, 2, 2, 4, 3, 5, 3, 3, 3, 3, 4, 5, 4, 4, 2, 3, 2, 4, 1, 6, 5, 5]
         // moves = [2, 6, 2, 4, 2, 2, 4, 3, 5, 3, 3, 3, 3, 4, 5, 4, 4, 2, 3, 2, 4, 1, 6, 5, 5]
         // moves = [0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6], this.gameSettings = { whoBegins: 'human', maxDepth: 12 };
-        // moves = [3, 3, 0, 3, 0, 3, 3, 0]   
+        // moves = [3, 3, 0, 3, 0, 3, 3, 0]
         // moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4]
         // moves = [3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4]
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 6]
