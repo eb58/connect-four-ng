@@ -119,7 +119,7 @@ export class GameBoardComponent {
     this.openQuestionDialog('Wirklich neu starten?')
       .pipe(filter(res => res === 'ja'))
       .subscribe(() => {
-        let moves: number[] = []
+        let moves: number[];
         // begin - just for test
         moves = [3, 4, 3, 2, 3, 3, 3, 6, 4, 0, 2, 3, 2, 2, 4, 4, 5]
         // moves = [2, 6, 2, 4, 2, 2, 4, 3, 5, 3, 3, 3, 3, 4, 5, 4, 4, 2, 3, 2, 4, 1, 6, 5, 5]
