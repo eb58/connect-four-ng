@@ -90,7 +90,7 @@ export class GameBoardComponent {
         + (this.cf.moves.length > 25 ? 2 : 0)
       const bestMoves = this.cf.calcScoresOfMoves(depth)
       this.thinking = false
-      console.log(`SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, DEPTH:${depth}, MOVES:[${this.cf.moves.join(',')}]`)
+      console.log(`DEPTH:${depth}, SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, MOVES:[${this.cf.moves.join(',')}]`)
       this.cf.doMove(bestMoves[0].move)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');

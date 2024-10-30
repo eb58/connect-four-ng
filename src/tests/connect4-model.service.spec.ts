@@ -1,12 +1,17 @@
-import { TestBed } from '@angular/core/testing';
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { ConnectFourModelService, DIM, winningRows, winningRowsForFields } from '../app/services/connect4-model.service';
+import {TestBed} from '@angular/core/testing';
+import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
+import {
+  ConnectFourModelService,
+  DIM,
+  winningRows,
+  winningRowsForFields
+} from '../app/services/connect4-model.service';
 
 const range = (n: number) => [...Array(n).keys()]
 let cf: ConnectFourModelService;
 
 beforeEach(() => {
-  TestBed.configureTestingModule({ schemas: [CUSTOM_ELEMENTS_SCHEMA] });
+  TestBed.configureTestingModule({schemas: [CUSTOM_ELEMENTS_SCHEMA]});
   cf = TestBed.inject(ConnectFourModelService);
 });
 
@@ -64,7 +69,7 @@ test('loosing 1', () => {
   // C  _  _  _  _  _  _
   // C  C  _  H  H  H  _
   const m = cf.calcScoresOfMoves(6)
-  expect(m.every(({ score }) => score <= -cf.MAXVAL + 10)).toBeTruthy();
+  expect(m.every(({score}) => score <= -cf.MAXVAL + 10)).toBeTruthy();
 });
 
 test('loosing 2', () => {
@@ -73,7 +78,7 @@ test('loosing 2', () => {
   // _  _  _  C  _  _  _
   // C  _  _  H  H  H  _
   const m = cf.calcScoresOfMoves(6)
-  expect(m.every(({ score }) => score <= -cf.MAXVAL + 10)).toBeTruthy();
+  expect(m.every(({score}) => score <= -cf.MAXVAL + 10)).toBeTruthy();
 });
 
 test('loosing 3', () => {
@@ -86,20 +91,7 @@ test('loosing 3', () => {
   // C  C  C  H  H  _  _
   const m = cf.calcScoresOfMoves(6)
   //console.log("loosing 3",m)
-  expect(m.every(({ score }) => score <= -cf.MAXVAL + 10)).toBeTruthy();
-});
-
-test('loosing 4', () => {
-  cf.state.aiTurn = true
-  cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1, 2])
-  // _  _  _  _  _  _  _
-  // H  _  _  _  _  _  _
-  // C  _  _  _  _  _  _
-  // C  _  H  H  _  _  _
-  // C  C  C  H  H  _  _
-  const m = cf.calcScoresOfMoves(6)
-  // console.log('loosing 4',m)
-  expect(m.every(({ score }) => score <= -cf.MAXVAL + 50)).toBeTruthy();
+  expect(m.every(({score}) => score <= -cf.MAXVAL + 10)).toBeTruthy();
 });
 
 test('eval 1', () => {
@@ -108,7 +100,7 @@ test('eval 1', () => {
   // _  _  _  C  _  _  _
   // _  _  _  H  H  _  _
   const m = cf.calcScoresOfMoves(6)
-  // console.log( m )
+  // console.log('eval 1', m)
   expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
 });
 
@@ -118,7 +110,7 @@ test('eval 2', () => {
   // _  _  C  _  _  _  _
   // _  _  H  _  H  _  _
   const m = cf.calcScoresOfMoves(6)
-  // console.log(m)
+  // console.log('eval 2', m)
   expect(m[0].move === 1 || m[0].move === 3).toBeTruthy();
 });
 
@@ -129,6 +121,7 @@ test('eval 3', () => {
   // H  _  _  C  _  _  _
   // H  _  _  C  _  _  _
   const m = cf.calcScoresOfMoves(6)
+  // console.log('eval 3', m)
   expect(m[0].move).toBe(0);
   expect(m.filter(x => x.score > -cf.MAXVAL + 50).length).toBe(1);
 });
@@ -150,7 +143,7 @@ test('eval 5', () => {
   // _  _  _  _  _  _  _
   const s = cf.calcScoresOfMoves(6)
   // console.log('eval 5', s)
-  expect(s.every(({ score }) => score > 0)).toBeTruthy();
+  expect(s.every(({score}) => score > 0)).toBeTruthy();
 });
 
 test('eval 6', () => {
@@ -159,7 +152,22 @@ test('eval 6', () => {
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
   const s = cf.calcScoresOfMoves(6)
+  // console.log('eval 6', s)
   expect(s[0].score).toBeGreaterThan(0);
+});
+
+test('eval 7', () => {
+  cf.state.aiTurn = true
+  cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1, 2])
+  // _  _  _  _  _  _  _
+  // H  _  _  _  _  _  _
+  // C  _  _  _  _  _  _
+  // C  _  H  H  _  _  _
+  // C  C  C  H  H  _  _
+  const m = cf.calcScoresOfMoves(6)
+  //console.log('eval 7', m)
+  expect(m[0].move).toBe(4);
+  expect(m.filter(({score}) => score > -cf.MAXVAL + 50).length).toBeLessThanOrEqual(1);
 });
 
 
@@ -246,7 +254,7 @@ test('winning 7', () => {
   // _  _  C  C  _  _  H
   // _  C  H  C  _  _  H
   // H  H  H  C  C  _  H
-  const m = cf.calcScoresOfMoves(10)
-  // console.log('winning 7', m)
+  const m = cf.calcScoresOfMoves(16)
+  // console.log('winning 7', m )
   expect(m[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 6);
 })
