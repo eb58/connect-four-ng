@@ -95,68 +95,18 @@ test('loosing 3', () => {
 });
 
 test('eval 1', () => {
-  cf.doMoves([3, 3, 4])
-  // _  _  _  _  _  _  _
-  // _  _  _  C  _  _  _
-  // _  _  _  H  H  _  _
-  const m = cf.calcScoresOfMoves(6)
-  // console.log('eval 1', m)
-  expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
-});
-
-test('eval 2', () => {
-  cf.doMoves([2, 6, 4])
-  // _  _  _  _  _  _  _
-  // _  _  C  _  _  _  _
-  // _  _  H  _  H  _  _
-  const m = cf.calcScoresOfMoves(6)
-  // console.log('eval 2', m)
-  expect(m[0].move === 1 || m[0].move === 3).toBeTruthy();
-});
-
-test('eval 3', () => {
   cf.doMoves([0, 3, 0, 3, 0])
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
   // H  _  _  C  _  _  _
   // H  _  _  C  _  _  _
-  const m = cf.calcScoresOfMoves(6)
+  const m = cf.calcScoresOfMoves(8)
   // console.log('eval 3', m)
   expect(m[0].move).toBe(0);
   expect(m.filter(x => x.score > -cf.MAXVAL + 50).length).toBe(1);
 });
 
-test('eval 4', () => {
-  cf.doMoves([3, 0, 4])
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  // C  _  _  H  H  _  _
-  const m = cf.calcScoresOfMoves(4)
-  // console.log(m, cf.dumpBoard(cf.state.board));
-  expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
-});
-
-test('eval 5', () => {
-  cf.state.aiTurn = true
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  const s = cf.calcScoresOfMoves(6)
-  // console.log('eval 5', s)
-  expect(s.every(({score}) => score > 0)).toBeTruthy();
-});
-
-test('eval 6', () => {
-  cf.doMove(0)
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  // H  _  _  _  _  _  _
-  const s = cf.calcScoresOfMoves(6)
-  // console.log('eval 6', s)
-  expect(s[0].score).toBeGreaterThan(0);
-});
-
-test('eval 7', () => {
+test('eval 2', () => {
   cf.state.aiTurn = true
   cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1, 2])
   // _  _  _  _  _  _  _
@@ -164,12 +114,62 @@ test('eval 7', () => {
   // C  _  _  _  _  _  _
   // C  _  H  H  _  _  _
   // C  C  C  H  H  _  _
-  const m = cf.calcScoresOfMoves(6)
-  //console.log('eval 7', m)
+  const m = cf.calcScoresOfMoves(8)
+  //console.log('eval 2', m)
   expect(m[0].move).toBe(4);
   expect(m.filter(({score}) => score > -cf.MAXVAL + 50).length).toBeLessThanOrEqual(1);
 });
 
+test('eval 3', () => {
+  cf.doMoves([3, 3, 4])
+  // _  _  _  _  _  _  _
+  // _  _  _  C  _  _  _
+  // _  _  _  H  H  _  _
+  const m = cf.calcScoresOfMoves(8)
+  // console.log('eval 3', m)
+  expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
+});
+
+
+test('eval 4', () => {
+  cf.doMoves([2, 6, 4])
+  // _  _  _  _  _  _  _
+  // _  _  C  _  _  _  _
+  // _  _  H  _  H  _  _
+  const m = cf.calcScoresOfMoves(8)
+  // console.log('eval 4', m)
+  expect(m[0].move === 1 || m[0].move === 3).toBeTruthy();
+});
+
+test('eval 5', () => {
+  cf.doMoves([3, 0, 4])
+  // _  _  _  _  _  _  _
+  // _  _  _  _  _  _  _
+  // C  _  _  H  H  _  _
+  const m = cf.calcScoresOfMoves(8)
+  // console.log(m, cf.dumpBoard(cf.state.board));
+  expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
+});
+
+test('eval 6', () => {
+  cf.state.aiTurn = true
+  // _  _  _  _  _  _  _
+  // _  _  _  _  _  _  _
+  // _  _  _  _  _  _  _
+  const s = cf.calcScoresOfMoves(8)
+  // console.log('eval 6', s)
+  expect(s.every(({score}) => score > 0)).toBeTruthy();
+});
+
+test('eval 7', () => {
+  cf.doMove(0)
+  // _  _  _  _  _  _  _
+  // _  _  _  _  _  _  _
+  // H  _  _  _  _  _  _
+  const s = cf.calcScoresOfMoves(8)
+  // console.log('eval 7', s)
+  expect(s[0].score).toBeGreaterThan(0);
+});
 
 test('winning 1', () => {
   cf.doMoves([3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 6, 5, 1, 1])
