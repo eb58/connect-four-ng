@@ -62,16 +62,14 @@ const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.height
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
-
-  // update state of winning rows attached to idxBoard
-  winningRowsForFields[idxBoard].forEach(i => {
+  winningRowsForFields[idxBoard].forEach(i => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounter[i] === -99999) return;
     if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== (state.aiTurn ? 1 : -1)) {
-      state.winningRowsCounter[i] = -99999;
-      return
+      state.winningRowsCounter[i] = -99999; // to mark winning row as neutral
+    } else {
+      state.winningRowsCounter[i] += state.aiTurn ? 1 : -1;
+      state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
     }
-    state.winningRowsCounter[i] += state.aiTurn ? 1 : -1;
-    state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
   })
   state.cntMoves++;
   state.heightCols[c]++;
@@ -87,7 +85,6 @@ let minimax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, 
   if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
   return generateMoves(state).reduce((score, m) => Math.max(score, -minimax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)), -MAXVAL);
 }
-//minimax = memoize(minimax, ({hash}: any) => hash, cache(x => abs(x) > MAXVAL - 50));
 
 let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + actDepth
@@ -102,7 +99,6 @@ let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, 
   }
   return score;
 }
-// negamax = memoize(negamax, ({hash}: any) => hash, cache(x => abs(x) > MAXVAL - 50));
 
 let negascout = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // https://www.chessprogramming.org/NegaScout
   if (state.isMill) return -MAXVAL + actDepth
@@ -122,7 +118,6 @@ let negascout = (state: STATE, maxDepth: number, actDepth: number, alpha: number
   }
   return alpha;
 }
-// negascout = memoize(negascout, (s: STATE) => s.hash, cache(x => abs(x) > MAXVAL - 50));
 
 const minmax = negascout
 
@@ -137,26 +132,26 @@ export class ConnectFourModelService {
     isMill: false,
   };
 
-  state: STATE;
+  state: STATE = cloneState(this.origState);
   moves: number[] = []
-  board: string[] = range(NFIELDS).map(()=>' ');
+  board: string[] = []
 
   constructor() {
-    this.state = cloneState(this.origState);
-    this.moves = [];
+    this.init()
   }
 
   init = () => {
     this.state = cloneState(this.origState);
     this.moves = [];
+    this.board = range(NFIELDS).map(() => ' ');
   }
 
   isMill = (): boolean => this.state.isMill
-  isDraw = (): boolean => generateMoves(this.state).length === 0 && !this.state.isMill
+  isDraw = (): boolean => this.moves.length === NFIELDS && !this.state.isMill
   doMove = (m: number) => {
     this.board[m + DIM.NCOL * (this.state.heightCols[m])] = this.state.aiTurn ? 'C' : 'H';
-    doMove(m, this.state);
     this.moves.push(m);
+    doMove(m, this.state);
   }
   doMoves = (moves: number[]): void => moves.forEach(v => this.doMove(v));
 
