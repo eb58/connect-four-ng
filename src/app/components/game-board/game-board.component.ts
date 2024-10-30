@@ -144,8 +144,8 @@ export class GameBoardComponent {
 
   getClass = (row: number, col: number): string => {
     const x = col + DIM.NCOL * (DIM.NROW - row - 1);
-    if (this.cf.state.board[x] === -1) return 'human'
-    if (this.cf.state.board[x] === 1) return 'ai'
+    if (this.cf.board[x] === 'H') return 'human'
+    if (this.cf.board[x] === 'C') return 'ai'
     return ''
   }
 }
