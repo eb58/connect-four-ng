@@ -27,7 +27,7 @@ export class GameBoardComponent {
   gameSettings = JSON.parse(localStorage.getItem('connect-4-settings') || 'false') || {whoBegins: 'human', maxDepth: 6};
   info = 'Bitte klicke in die Spalte, in die du einen Stein einwerfen möchtest.'
 
-  NROW = range(DIM.NROW);
+  NROW = range(DIM.NROW).reverse();
   NCOL = range(DIM.NCOL);
 
   moves: number[] = []
@@ -139,23 +139,12 @@ export class GameBoardComponent {
     })
 
   getClass = (row: number, col: number): string => {
-    const x = col + DIM.NCOL * (DIM.NROW - row - 1);
+    const x = col + DIM.NCOL * row;
     const lastMove = this.moves[this.moves.length - 1];
-    const idx = lastMove + DIM.NCOL * (DIM.NROW - this.cf.state.heightCols[lastMove] - 1);
+    const idx = lastMove + DIM.NCOL * (this.cf.state.heightCols[lastMove] - 1);
 
-    if (x == idx) {
-      console.log(col, lastMove, x, idx, this.cf.state.heightCols[lastMove], row)
-      if (this.board[x] === 'H') return 'humanx'
-      if (this.board[x] === 'C') return 'aix'
-
-    }
-      //   if (this.cf.board[this.cf.cf.state.heightCols[lastMove]] === 'H') return 'humanx'
-      //   if (this.cf.board[this.cf.cf.state.heightCols[lastMove]] === 'C') return 'aa'
-    //
-    else {
-      if (this.board[x] === 'H') return 'human'
-      if (this.board[x] === 'C') return 'ai'
-    }
+    if (this.board[x] === 'H') return x == idx ? 'humanx' : 'human'
+    if (this.board[x] === 'C') return x == idx ? 'aix' : 'ai'
     return ''
   }
 }

@@ -14,16 +14,26 @@ td {
 
 td.human {
   background: #a00;
+  border-color: #b00;
+  border-width: 2px;
 }
+
 td.humanx {
-  background: #f00;
+  background: #b00;
+  border-color: white;
+  border-width: 2px;
 }
 
 td.ai {
   background: #00a;
+  border-color: #00f;
+  border-width: 2px;
 }
+
 td.aix {
-  background: #00f;
+  background: #00b;
+  border-color: white;
+  border-width: 2px;
 }
 
 #field.button {
