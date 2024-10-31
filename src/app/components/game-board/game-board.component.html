@@ -5,7 +5,7 @@
   <mat-card-content>
     <table id="field" aria-describedby="board">
       <tr *ngFor="let row of NROW">
-        <td *ngFor="let col of NCOL" [class]="getClass(row, col)" (click)="onClick(col)"></td>
+        <td *ngFor="let col of NCOL" [ngClass]="getClass(row, col)" (click)="onClick(col)"></td>
       </tr>
     </table>
   </mat-card-content>

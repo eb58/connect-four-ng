@@ -16,6 +16,7 @@ export type GameSettings = {
   whoBegins: Player,
   maxDepth: number,     // skill level
 }
+const NFIELDS = DIM.NCOL * DIM.NROW
 
 @Component({
   selector: 'app-game-board',
@@ -28,14 +29,33 @@ export class GameBoardComponent {
 
   NROW = range(DIM.NROW);
   NCOL = range(DIM.NCOL);
+
+  moves: number[] = []
+  board: string[] = []
+
   thinking = false;
 
   constructor(private readonly cf: ConnectFourModelService, public dialog: MatDialog) {
+    this.init()
     if (this.gameSettings.whoBegins === 'ai') {
       this.cf.state.aiTurn = true
       this.actAsAI()
     }
   }
+
+  init = () => {
+    this.moves = [];
+    this.board = range(DIM.NROW * DIM.NCOL).map(() => ' ');
+  }
+
+  isMill = (): boolean => this.cf.state.isMill
+  isDraw = (): boolean => this.moves.length === NFIELDS && !this.cf.state.isMill
+  doMove = (m: number) => {
+    this.board[m + DIM.NCOL * (this.cf.state.heightCols[m])] = this.cf.state.aiTurn ? 'C' : 'H';
+    this.moves.push(m);
+    this.cf.doMove(m);
+  }
+  undoMove = () => this.restart(this.moves.slice(0, -2))
 
   openInfoDialog = (info: string) => this.dialog.open(InfoDialog, {data: {title: 'Info', info}});
   openQuestionDialog = (question: string): Observable<string> => this.dialog.open(QuestionDialog, {
@@ -48,70 +68,46 @@ export class GameBoardComponent {
 
   onClick = (c: number) => {
     if (this.thinking) return
-    if (this.cf.state.aiTurn) {
-      this.info = ' Du bist nicht am Zug';
-      return;
-    }
-    if (this.cf.isMill()) this.info = 'Das Spiel ist zuende. Glückwunsch, du hast gewonnen.'
-    if (this.cf.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
-
-    const idxBoard = c + DIM.NCOL * this.cf.state.heightCols[c]
-    if (0 > idxBoard || idxBoard > DIM.NCOL * DIM.NROW) {
-      this.info = 'Kein erlaubter Zug';
-      return
-    }
+    if (this.isMill()) this.info = 'Das Spiel ist zuende. Glückwunsch, du hast gewonnen.'
+    else if (this.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
-    this.cf.doMove(c)
-    if (this.cf.isMill()) {
-      this.openInfoDialog('Gratuliere, du hast gewonnen!');
-      return
-    }
-    if (this.cf.isDraw()) {
-      this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
-      return
-    }
-    this.actAsAI()
+    this.doMove(c)
+    if (this.isMill()) this.openInfoDialog('Gratuliere, du hast gewonnen!');
+    else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
+    else this.actAsAI()
   }
 
   actAsAI = () => {
-    if (this.cf.moves.length <= 1) {
+    if (this.moves.length <= 1) {
       const m = randomIntInRange(0, 6)
-      this.cf.doMove(m)
+      this.doMove(m)
       this.info = `Mein letzter Zug: Spalte ${m + 1}`
       return
     }
 
     this.thinking = true
+    const depth = this.gameSettings.maxDepth
+      + (this.moves.length > 10 ? 2 : 0)
+      + (this.moves.length > 20 ? 2 : 0)
+      + (this.moves.length > 25 ? 2 : 0)
     setTimeout(() => {
-      const depth = this.gameSettings.maxDepth
-        + (this.cf.moves.length > 10 ? 2 : 0)
-        + (this.cf.moves.length > 20 ? 2 : 0)
-        + (this.cf.moves.length > 25 ? 2 : 0)
       const bestMoves = this.cf.calcScoresOfMoves(depth)
       this.thinking = false
-      console.log(`DEPTH:${depth}, SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, MOVES:[${this.cf.moves.join(',')}]`)
-      this.cf.doMove(bestMoves[0].move)
+      this.doMove(bestMoves[0].move)
+      console.log(`DEPTH:${depth}, SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, MOVES:[${this.moves.join(',')}]`)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
-      if (this.cf.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
-      if (this.cf.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
+      if (this.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
+      else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
     }, 500)
   }
 
-  restart = (gameSettings: GameSettings, moves: number[] = []) => {
+  restart = (moves: number[] = []) => {
+    this.init();
     this.cf.init()
-    this.cf.state.aiTurn = gameSettings.whoBegins === 'ai'
-    this.cf.doMoves(moves)
-    if (this.cf.state.aiTurn) setTimeout(() => {
-      const x = this.cf.calcScoresOfMoves(gameSettings.maxDepth)[0]
-      console.log(JSON.stringify(x))
-      this.cf.doMove(x.move)
-    }, 100)
-  }
-
-  undoMove = () => {
-    this.info = ''
-    this.restart(this.gameSettings, this.cf.moves.slice(0, -2))
+    this.cf.state.aiTurn = this.gameSettings.whoBegins === 'ai'
+    moves.forEach(v => this.doMove(v));
+    if (this.cf.state.aiTurn) setTimeout(() => this.doMove(this.cf.calcScoresOfMoves(this.gameSettings.maxDepth)[0].move), 100)
   }
 
   restartGame = () => {
@@ -131,7 +127,7 @@ export class GameBoardComponent {
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 6]
         // moves = [3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 2]
         // end - just for test
-        this.restart(this.gameSettings, moves)
+        this.restart(moves)
       })
   }
 
@@ -144,8 +140,22 @@ export class GameBoardComponent {
 
   getClass = (row: number, col: number): string => {
     const x = col + DIM.NCOL * (DIM.NROW - row - 1);
-    if (this.cf.board[x] === 'H') return 'human'
-    if (this.cf.board[x] === 'C') return 'ai'
+    const lastMove = this.moves[this.moves.length - 1];
+    const idx = lastMove + DIM.NCOL * (DIM.NROW - this.cf.state.heightCols[lastMove] - 1);
+
+    if (x == idx) {
+      console.log(col, lastMove, x, idx, this.cf.state.heightCols[lastMove], row)
+      if (this.board[x] === 'H') return 'humanx'
+      if (this.board[x] === 'C') return 'aix'
+
+    }
+      //   if (this.cf.board[this.cf.cf.state.heightCols[lastMove]] === 'H') return 'humanx'
+      //   if (this.cf.board[this.cf.cf.state.heightCols[lastMove]] === 'C') return 'aa'
+    //
+    else {
+      if (this.board[x] === 'H') return 'human'
+      if (this.board[x] === 'C') return 'ai'
+    }
     return ''
   }
 }

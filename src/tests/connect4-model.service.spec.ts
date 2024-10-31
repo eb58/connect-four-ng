@@ -21,13 +21,10 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[0]).toEqual([0, 1, 2])
   expect(winningRowsForFields[1]).toEqual([0, 3, 4, 5])
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
-  expect(cf.board.length).toBe(DIM.NCOL * DIM.NROW);
-  expect(cf.board).toEqual(range(DIM.NCOL * DIM.NROW).map(() => ' '));
   expect(cf.state.cntMoves).toBe(0);
   expect(cf.state.aiTurn).toBe(false);
   expect(cf.state.heightCols).toEqual(range(cf.origState.heightCols.length).map(() => 0));
-  expect(cf.isMill()).toBe(false);
-  expect(cf.isDraw()).toBe(false);
+  expect(cf.state.isMill).toBe(false);
 });
 
 test('whoseTurn works', () => {

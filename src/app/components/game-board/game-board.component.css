@@ -15,9 +15,15 @@ td {
 td.human {
   background: #a00;
 }
+td.humanx {
+  background: #f00;
+}
 
 td.ai {
   background: #00a;
+}
+td.aix {
+  background: #00f;
 }
 
 #field.button {

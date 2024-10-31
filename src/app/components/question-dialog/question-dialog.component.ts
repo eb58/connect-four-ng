@@ -12,7 +12,6 @@ export type QuestionDialogData = {
 })
 export class QuestionDialog {
   constructor(
-    public dialogRef: MatDialogRef<QuestionDialog>,
     @Inject(MAT_DIALOG_DATA) public question: QuestionDialogData,
   ) {
   }

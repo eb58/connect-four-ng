@@ -133,8 +133,6 @@ export class ConnectFourModelService {
   };
 
   state: STATE = cloneState(this.origState);
-  moves: number[] = []
-  board: string[] = []
 
   constructor() {
     this.init()
@@ -142,18 +140,10 @@ export class ConnectFourModelService {
 
   init = () => {
     this.state = cloneState(this.origState);
-    this.moves = [];
-    this.board = range(NFIELDS).map(() => ' ');
   }
 
-  isMill = (): boolean => this.state.isMill
-  isDraw = (): boolean => this.moves.length === NFIELDS && !this.state.isMill
-  doMove = (m: number) => {
-    this.board[m + DIM.NCOL * (this.state.heightCols[m])] = this.state.aiTurn ? 'C' : 'H';
-    this.moves.push(m);
-    doMove(m, this.state);
-  }
-  doMoves = (moves: number[]): void => moves.forEach(v => this.doMove(v));
+  doMove = (m: number) => doMove(m, this.state);
+  doMoves = ( moves:number[] ) => moves.forEach(v => this.doMove(v));
 
   checkSimpleSolutions = (moves: number[], lev: number) => {
     const scoresOfMoves = moves.map(move => ({
@@ -162,7 +152,7 @@ export class ConnectFourModelService {
     })).toSorted(cmpByScore)
     if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there is a move to win!
     if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster
-    if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length === 1 ) return scoresOfMoves // just one move does not lead to disaster
+    if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length === 1) return scoresOfMoves // just one move does not lead to disaster
     // console.log( `LEV:${lev} MOVES:${moves.join(',')}`)
     return undefined;
   }
