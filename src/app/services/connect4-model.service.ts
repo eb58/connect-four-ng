@@ -79,38 +79,38 @@ const doMove = (c: number, state: STATE) => {
 
 const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === -99999 ? 0 : cnt ** 3), 0)
 
-let minimax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-  if (state.isMill) return -MAXVAL + actDepth
-  if (state.cntMoves >= NFIELDS) return 0
-  if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
-  return generateMoves(state).reduce((score, m) => Math.max(score, -minimax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)), -MAXVAL);
-}
+// let minimax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+//   if (state.isMill) return -MAXVAL + actDepth
+//   if (state.cntMoves >= NFIELDS) return 0
+//   if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
+//   return generateMoves(state).reduce((score, m) => Math.max(score, -minimax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)), -MAXVAL);
+// }
+//
+// let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+//   if (state.isMill) return -MAXVAL + actDepth
+//   if (state.cntMoves >= NFIELDS) return 0
+//   if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
+//   let score = -MAXVAL;
+//   for (const m of generateMoves(state)) {
+//     score = Math.max(score, -negamax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
+//     alpha = Math.max(alpha, score)
+//     if (alpha >= beta)
+//       break;
+//   }
+//   return score;
+// }
 
-let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-  if (state.isMill) return -MAXVAL + actDepth
+let negascout = (state: STATE, depth: number, alpha: number, beta: number): number => { // https://www.chessprogramming.org/NegaScout
+  if (state.isMill) return -MAXVAL + depth
   if (state.cntMoves >= NFIELDS) return 0
-  if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
-  let score = alpha;
-  for (const m of generateMoves(state)) {
-    score = Math.max(score, -negamax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
-    alpha = Math.max(alpha, score)
-    if (alpha >= beta)
-      break;
-  }
-  return score;
-}
-
-let negascout = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // https://www.chessprogramming.org/NegaScout
-  if (state.isMill) return -MAXVAL + actDepth
-  if (state.cntMoves >= NFIELDS) return 0
-  if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
+  if (depth === 0) return -computeScoreOfNodeForAI(state);
 
   let b = beta;
   const moves = generateMoves(state)
   for (let i = 0; i < moves.length; i++) {
-    let score = -negascout(doMove(moves[i], cloneState(state)), maxDepth, actDepth + 1, -b, -alpha)
+    let score = -negascout(doMove(moves[i], cloneState(state)), depth - 1, -b, -alpha)
     if (alpha < score && score < beta && i > 1)
-      score = -negascout(doMove(moves[i], cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)
+      score = -negascout(doMove(moves[i], cloneState(state)), depth - 1, -beta, -alpha)
     alpha = Math.max(alpha, score)
     if (alpha >= beta)
       break;
@@ -143,28 +143,28 @@ export class ConnectFourModelService {
   }
 
   doMove = (m: number) => doMove(m, this.state);
-  doMoves = ( moves:number[] ) => moves.forEach(v => this.doMove(v));
+  doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
 
-  checkSimpleSolutions = (moves: number[], lev: number) => {
+  checkSimpleSolutions = (moves: number[], depth: number) => {
     const scoresOfMoves = moves.map(move => ({
       move,
-      score: -minmax(doMove(move, cloneState(this.state)), lev, 0, -MAXVAL, +MAXVAL)
+      score: -minmax(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL )
     })).toSorted(cmpByScore)
     if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there is a move to win!
     if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster
     if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length === 1) return scoresOfMoves // just one move does not lead to disaster
-    // console.log( `LEV:${lev} MOVES:${moves.join(',')}`)
+    // console.log( `LEV:${depth} MOVES:${moves.join(',')}`)
     return undefined;
   }
 
-  calcScoresOfMoves = (maxDepth: number): MoveType[] => {
+  calcScoresOfMoves = (depth: number): MoveType[] => {
     if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
     const moves = generateMoves(this.state);
     return (
       range(4).reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n + 1), undefined) ||
       moves.map(move => ({
         move,
-        score: -minmax(doMove(move, cloneState(this.state)), maxDepth, 0, -MAXVAL, +MAXVAL)
+        score: -minmax(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL)
       })).toSorted(cmpByScore)
     )
   }
