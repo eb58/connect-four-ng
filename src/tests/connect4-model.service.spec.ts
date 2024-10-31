@@ -259,6 +259,15 @@ test('winning 7', () => {
 test('winning 8 - depth 8', () => {
   cf.doMoves([2, 6, 2, 3, 1, 5, 4, 4, 0, 5, 6])
   const m = cf.calcScoresOfMoves(8)
+  // console.log('winning 8', m )
   expect(m[0].move).toBe(5);
   expect(m[0].score).toBe(cf.MAXVAL - 9);
+})
+
+test('winning 9 - depth 12', () => {
+  cf.doMoves([3, 6, 3, 3, 2, 4, 1, 0, 0, 3, 0, 2, 1, 3, 3, 2, 1, 1, 0, 0, 2, 1, 2, 6, 6])
+  const m = cf.calcScoresOfMoves(12)
+  console.log('winning 9', m)
+  expect(m[0].move).toBe(6);
+  expect(m[0].score).toBe(cf.MAXVAL - 16);
 })
