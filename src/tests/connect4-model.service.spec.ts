@@ -255,3 +255,11 @@ test('winning 7', () => {
   // console.log('winning 7', m )
   expect(m[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 6);
 })
+
+test('winning 8 - depth 8', () => {
+  cf.doMoves([2, 6, 2, 3, 1, 5, 4, 4, 0, 5, 6])
+  const m = cf.calcScoresOfMoves(8)
+  console.log('winning 8', m)
+  expect(m[0].move).toBe(5);
+  expect(m[0].score).toBe(cf.MAXVAL - 9);
+})
