@@ -2,13 +2,15 @@ import {Injectable} from '@angular/core';
 
 const range = (n: number) => [...Array(n).keys()]
 const sign = (x: number) => x < 0 ? -1 : 1
-// const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
-//   add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
-//   get: (key: any) => c[key]
-// })
-// const memoize = (f: any, hash: any, c = cache()) =>
-//   (...args: any[]) =>
-//     feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
+const feedX = (x: any, f: any) => f(x)
+
+const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
+  add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
+  get: (key: any) => c[key]
+})
+const memoize = (f: any, hash: any, c = cache()) =>
+  (...args: any[]) =>
+    feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
 
 export const DIM = {NCOL: 7, NROW: 6};
 
@@ -39,6 +41,7 @@ const cloneState = (s: STATE) => ({
   ...s,
   heightCols: [...s.heightCols],
   winningRowsCounter: [...s.winningRowsCounter],
+  board: [...s.board],
 })
 
 type STATE = {
@@ -47,6 +50,8 @@ type STATE = {
   winningRowsCounter: number[]; // counter of winning rows > 0 for AI; < 0 for human
   aiTurn: boolean;              // who's turn is it
   isMill: boolean;              // we have four in a row!
+  board: number[];
+  hash: string;
 }
 
 type MoveType = {
@@ -56,6 +61,7 @@ type MoveType = {
 
 const ORDER = Object.freeze([3, 4, 2, 5, 1, 6, 0])
 const MAXVAL = 1000000
+const NEUTRAL = 77777
 const NFIELDS = DIM.NCOL * DIM.NROW
 
 const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
@@ -63,9 +69,9 @@ const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.height
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
   winningRowsForFields[idxBoard].forEach(i => { // update state of winning rows attached to idxBoard
-    if (state.winningRowsCounter[i] === -99999) return;
+    if (state.winningRowsCounter[i] === NEUTRAL) return;
     if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== (state.aiTurn ? 1 : -1)) {
-      state.winningRowsCounter[i] = -99999; // to mark winning row as neutral
+      state.winningRowsCounter[i] = NEUTRAL; // to mark winning row as neutral
     } else {
       state.winningRowsCounter[i] += state.aiTurn ? 1 : -1;
       state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
@@ -73,37 +79,41 @@ const doMove = (c: number, state: STATE) => {
   })
   state.cntMoves++;
   state.heightCols[c]++;
+  state.board[idxBoard] = state.aiTurn ? 1 : -1;
+  state.hash = state.board.join('') + (state.aiTurn ? 'C' : 'H')
   state.aiTurn = !state.aiTurn;
   return state;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === -99999 ? 0 : cnt ** 3), 0)
+const computeScoreOfNodeForAI = (state: STATE) => (state.aiTurn ? 1 : -1) * state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 3), 0)
 
-// let minimax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-//   if (state.isMill) return -MAXVAL + actDepth
-//   if (state.cntMoves >= NFIELDS) return 0
-//   if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
-//   return generateMoves(state).reduce((score, m) => Math.max(score, -minimax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha)), -MAXVAL);
-// }
-//
-// let negamax = (state: STATE, maxDepth: number, actDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-//   if (state.isMill) return -MAXVAL + actDepth
-//   if (state.cntMoves >= NFIELDS) return 0
-//   if (actDepth === maxDepth) return -computeScoreOfNodeForAI(state);
-//   let score = -MAXVAL;
-//   for (const m of generateMoves(state)) {
-//     score = Math.max(score, -negamax(doMove(m, cloneState(state)), maxDepth, actDepth + 1, -beta, -alpha));
-//     alpha = Math.max(alpha, score)
-//     if (alpha >= beta)
-//       break;
-//   }
-//   return score;
-// }
+let minimax = (state: STATE, depth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+  if (state.isMill) return -MAXVAL
+  if (state.cntMoves >= NFIELDS) return 0
+  if (depth === 0) return computeScoreOfNodeForAI(state);
+  return generateMoves(state).reduce((score, m) => Math.max(score, -minimax(doMove(m, cloneState(state)), depth - 1, -beta, -alpha)), -MAXVAL);
+}
+minimax = memoize(minimax, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
+
+let negamax = (state: STATE, depth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+  if (state.isMill) return -MAXVAL
+  if (state.cntMoves >= NFIELDS) return 0
+  if (depth === 0) return computeScoreOfNodeForAI(state);
+  let score = -MAXVAL;
+  for (const m of generateMoves(state)) {
+    score = Math.max(score, -negamax(doMove(m, cloneState(state)), depth - 1, -beta, -alpha));
+    alpha = Math.max(alpha, score)
+    if (alpha >= beta)
+      break;
+  }
+  return score;
+}
+negamax = memoize(negamax, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
 
 let negascout = (state: STATE, depth: number, alpha: number, beta: number): number => { // https://www.chessprogramming.org/NegaScout
-  if (state.isMill) return -MAXVAL + depth
+  if (state.isMill) return -MAXVAL
   if (state.cntMoves >= NFIELDS) return 0
-  if (depth === 0) return -computeScoreOfNodeForAI(state);
+  if (depth === 0) return computeScoreOfNodeForAI(state);
 
   let b = beta;
   const moves = generateMoves(state)
@@ -118,8 +128,7 @@ let negascout = (state: STATE, depth: number, alpha: number, beta: number): numb
   }
   return alpha;
 }
-
-const minmax = negascout
+negascout = memoize(negascout, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
@@ -130,6 +139,8 @@ export class ConnectFourModelService {
     winningRowsCounter: winningRows.map(() => 0),
     aiTurn: false,
     isMill: false,
+    board: range(DIM.NCOL * DIM.NROW).map(() => 0),
+    hash: ''
   };
 
   state: STATE = cloneState(this.origState);
@@ -145,11 +156,11 @@ export class ConnectFourModelService {
   doMove = (m: number) => doMove(m, this.state);
   doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
 
-  checkSimpleSolutions = (moves: number[], depth: number) => {
+  checkSimpleSolutions = (moves: number[], depth: number, minmaxAlgorithm: any): MoveType[] | undefined => {
     const scoresOfMoves = moves.map(move => ({
       move,
-      score: -minmax(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL )
-    })).toSorted(cmpByScore)
+      score: -minmaxAlgorithm(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL)
+    }))
     if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there is a move to win!
     if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster
     if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length === 1) return scoresOfMoves // just one move does not lead to disaster
@@ -157,16 +168,16 @@ export class ConnectFourModelService {
     return undefined;
   }
 
-  calcScoresOfMoves = (depth: number): MoveType[] => {
+  calcScoresOfMoves = (depth: number, minmaxAlgorithm = negascout): MoveType[] => {
     if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
     const moves = generateMoves(this.state);
     return (
-      range(4).reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n + 1), undefined) ||
+      range(Math.min(4, depth - 2)).reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n + 1, minmaxAlgorithm), undefined) ||
       moves.map(move => ({
         move,
-        score: -minmax(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL)
-      })).toSorted(cmpByScore)
-    )
+        score: -minmaxAlgorithm(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL)
+      }))
+    ).toSorted(cmpByScore)
   }
 
 }
