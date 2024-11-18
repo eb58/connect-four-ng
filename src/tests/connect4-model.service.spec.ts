@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
 import {
   ConnectFourModelService,
-  DIM,
+  DIM, dumpBoard,
   winningRows,
   winningRowsForFields
 } from '../app/services/connect4-model.service';
@@ -171,10 +171,10 @@ test('eval 7', () => {
 test('eval 8 - bad moves', () => {
   cf.doMoves([3, 0, 3])
   // _  _  _  _  _  _  _
-  // C  _  _  H_  _  _  _
-  // C  _  _  H  H  _  _
+  // _  _  _  H  _  _  _
+  // C  _  _  H  _  _  _
   const s = cf.calcScoresOfMoves(6)
-  // console.log('eval 8', s)
+  //console.log('eval 8', s, dumpBoard(cf.state.board))
   expect(s.every(({score}) => score < 0)).toBeTruthy();
 });
 
@@ -184,17 +184,7 @@ test('eval 9 - bad moves', () => {
   // C  _  _  H_  _  _  _
   // C  _  _  H  H  _  _
   const s = cf.calcScoresOfMoves(6)
-  // console.log('eval9', s)
-  expect(s.every(({score}) => score < 0)).toBeTruthy();
-});
-
-test('eval 10', () => {
-  cf.doMoves([0, 3, 0, 3, 0])
-  // H  _  _  _  _  _  _
-  // H  _  _  C  _  _  _
-  // H  _  _  C  _  _  _
-  const s = cf.calcScoresOfMoves(6)
-  // console.log('eval 10', s)
+  // console.log('eval9', s, dumpBoard(cf.state.board))
   expect(s.every(({score}) => score < 0)).toBeTruthy();
 });
 

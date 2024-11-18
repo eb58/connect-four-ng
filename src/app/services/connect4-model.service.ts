@@ -80,47 +80,72 @@ const doMove = (c: number, state: STATE) => {
   state.cntMoves++;
   state.heightCols[c]++;
   state.board[idxBoard] = state.aiTurn ? 1 : -1;
-  state.hash = state.board.join('') + (state.aiTurn ? 'C' : 'H')
+  state.hash = (state.aiTurn ? 'C' : 'H') + state.board.join()
   state.aiTurn = !state.aiTurn;
   return state;
 }
 
 const computeScoreOfNodeForAI = (state: STATE) => (state.aiTurn ? 1 : -1) * state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 3), 0)
 
-let minimax = (state: STATE, depth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-  if (state.isMill) return -MAXVAL
+let alphabeta = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number, isMaximizingPlayer: boolean): number => {
+  // minimax with alpha beta pruning -> wikipedia
+  if (state.isMill) return state.aiTurn ? -MAXVAL : MAXVAL
   if (state.cntMoves >= NFIELDS) return 0
-  if (depth === 0) return computeScoreOfNodeForAI(state);
-  return generateMoves(state).reduce((score, m) => Math.max(score, -minimax(doMove(m, cloneState(state)), depth - 1, -beta, -alpha)), -MAXVAL);
-}
-minimax = memoize(minimax, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
+  if (depth === maxDepth) return state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 3), 0)
 
-let negamax = (state: STATE, depth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+  let [maxValue, minValue] = [-MAXVAL, MAXVAL];
+  for (const m of generateMoves(state)) {
+    const newState = doMove(m, cloneState(state))
+    const val = alphabeta(newState, depth + 1, maxDepth, alpha, beta, !isMaximizingPlayer);
+    if (isMaximizingPlayer) {
+      if (val > maxValue) maxValue = val;
+      if (val > alpha) alpha = val;
+    } else {
+      if (val < minValue) minValue = val;
+      if (val < beta) beta = val;
+    }
+    if (alpha >= beta)
+      break;
+  }
+  return isMaximizingPlayer ? maxValue : minValue;
+}
+alphabeta = memoize(alphabeta, (state: STATE, depth: number) => state.hash + '|' + depth, cache(x => Math.abs(x) >= MAXVAL));
+
+let negamaxSimple = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL
   if (state.cntMoves >= NFIELDS) return 0
-  if (depth === 0) return computeScoreOfNodeForAI(state);
+  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
+  return generateMoves(state).reduce((score, m) => Math.max(score, -negamaxSimple(doMove(m, cloneState(state)), depth + 1, maxDepth, 0, 0)), -MAXVAL);
+}
+// negamaxSimple = memoize(negamaxSimple, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
+
+let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number, isMaximizingPlayer: boolean): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
+  if (state.isMill) return -MAXVAL
+  if (state.cntMoves >= NFIELDS) return 0
+  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
   let score = -MAXVAL;
   for (const m of generateMoves(state)) {
-    score = Math.max(score, -negamax(doMove(m, cloneState(state)), depth - 1, -beta, -alpha));
+    score = Math.max(score, -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha, !isMaximizingPlayer));
     alpha = Math.max(alpha, score)
     if (alpha >= beta)
       break;
   }
   return score;
 }
-negamax = memoize(negamax, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
+negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
-let negascout = (state: STATE, depth: number, alpha: number, beta: number): number => { // https://www.chessprogramming.org/NegaScout
+let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number, isMaximizingPlayer: boolean): number => {
+  // https://www.chessprogramming.org/NegaScout
   if (state.isMill) return -MAXVAL
   if (state.cntMoves >= NFIELDS) return 0
-  if (depth === 0) return computeScoreOfNodeForAI(state);
+  if (depth >= maxDepth) return computeScoreOfNodeForAI(state);
 
   let b = beta;
   const moves = generateMoves(state)
   for (let i = 0; i < moves.length; i++) {
-    let score = -negascout(doMove(moves[i], cloneState(state)), depth - 1, -b, -alpha)
+    let score = -negascout(doMove(moves[i], cloneState(state)), depth + 1, maxDepth, -b, -alpha, isMaximizingPlayer)
     if (alpha < score && score < beta && i > 1)
-      score = -negascout(doMove(moves[i], cloneState(state)), depth - 1, -beta, -alpha)
+      score = -negascout(doMove(moves[i], cloneState(state)), depth + 1, maxDepth, -beta, -alpha, isMaximizingPlayer)
     alpha = Math.max(alpha, score)
     if (alpha >= beta)
       break;
@@ -128,7 +153,7 @@ let negascout = (state: STATE, depth: number, alpha: number, beta: number): numb
   }
   return alpha;
 }
-negascout = memoize(negascout, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
+negascout = memoize(negascout, (s: STATE, depth: number) => s.hash + '|' + depth, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
@@ -149,17 +174,14 @@ export class ConnectFourModelService {
     this.init()
   }
 
-  init = () => {
-    this.state = cloneState(this.origState);
-  }
-
+  init = () => this.state = cloneState(this.origState);
   doMove = (m: number) => doMove(m, this.state);
   doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
 
-  checkSimpleSolutions = (moves: number[], depth: number, minmaxAlgorithm: any): MoveType[] | undefined => {
+  checkSimpleSolutions = (moves: number[], maxDepth: number, minmaxAlgorithm: any): MoveType[] | undefined => {
     const scoresOfMoves = moves.map(move => ({
       move,
-      score: -minmaxAlgorithm(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL)
+      score: minmaxAlgorithm(doMove(move, cloneState(this.state)), 0, maxDepth, -MAXVAL, +MAXVAL, false)
     }))
     if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there is a move to win!
     if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster
@@ -168,20 +190,23 @@ export class ConnectFourModelService {
     return undefined;
   }
 
-  calcScoresOfMoves = (depth: number, minmaxAlgorithm = negascout): MoveType[] => {
-    if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
-    const moves = generateMoves(this.state);
-    return (
-      range(Math.min(4, depth - 2)).reduce((acc: any, n) => acc || this.checkSimpleSolutions(moves, n + 1, minmaxAlgorithm), undefined) ||
-      moves.map(move => ({
-        move,
-        score: -minmaxAlgorithm(doMove(move, cloneState(this.state)), depth, -MAXVAL, +MAXVAL)
-      }))
-    ).toSorted(cmpByScore)
-  }
-
+  calcScoresOfMoves =
+    (maxDepth: number,
+     minmaxAlgorithm = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number, isMaximizingPlayer: boolean) => -negamax(state, depth, maxDepth, alpha, beta, isMaximizingPlayer)
+    ): MoveType[] => {
+      if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
+      const moves = generateMoves(this.state);
+      return (
+        range(Math.min(4, maxDepth - 2)).reduce((acc: any, maxDepth) => acc || this.checkSimpleSolutions(moves, maxDepth, minmaxAlgorithm), undefined) ||
+        moves.map(move => ({
+          move,
+          score: minmaxAlgorithm(doMove(move, cloneState(this.state)), 0, maxDepth, -MAXVAL, +MAXVAL, false)
+        }))
+      ).toSorted(cmpByScore)
+    }
 }
 
 // just for debugging
+const f = (x: number) => x === 0 ? '_' : x < 0 ? 'H' : 'C'
 const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
-export const dumpBoard = (board: string[]): string => '\n' + reshape(board.map(x => ` ${x} `), 7).reverse().map((x: any) => x.join('')).join('\n')
+export const dumpBoard = (board: number[]): string => '\n' + reshape(board.map(x => ` ${f(x)} `), 7).reverse().map((x: any) => x.join('')).join('\n')
