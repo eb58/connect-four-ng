@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
 import {
   ConnectFourModelService,
-  DIM, dumpBoard,
+  DIM,
   winningRows,
   winningRowsForFields
 } from '../app/services/connect4-model.service';

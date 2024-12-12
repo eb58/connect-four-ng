@@ -1,5 +1,25 @@
 import {Injectable} from '@angular/core';
 
+type SearchController = {
+  nodes: number,
+  start: number,
+  stop: boolean,
+  maxThinkingDuration: number,
+  depth: number,
+  duration: number,
+  bestMoves: any[]
+}
+
+const searchController: SearchController = {
+  nodes: 0,
+  start: Date.now(),
+  stop: false,
+  maxThinkingDuration: 0,
+  depth: 0,
+  duration: 0,
+  bestMoves: []
+}
+
 const range = (n: number) => [...Array(n).keys()]
 const sign = (x: number) => x < 0 ? -1 : 1
 const feedX = (x: any, f: any) => f(x)
@@ -86,8 +106,12 @@ const doMove = (c: number, state: STATE) => {
 }
 
 const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 3), 0)
+const checkTimeIsUp = () => searchController.stop = searchController.maxThinkingDuration !== 0 && Date.now() - searchController.start > searchController.maxThinkingDuration
 
 let alphabeta = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number, isMaximizingPlayer: boolean): number => {
+  if ((++searchController.nodes & 1023) === 0) checkTimeIsUp();
+  if (searchController.stop) return 0;
+
   // minimax with alpha beta pruning -> wikipedia
   if (state.isMill) return state.aiTurn ? -MAXVAL : MAXVAL
   if (state.cntMoves >= NFIELDS) return 0
@@ -106,17 +130,12 @@ let alphabeta = (state: STATE, depth: number, maxDepth: number, alpha: number, b
   }
   return isMaximizingPlayer ? alpha : beta;
 }
-alphabeta = memoize(alphabeta, (state: STATE, depth: number, maxDepth: number) => state.hash + '|' + depth + '|' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
-
-let negamaxSimple = (state: STATE, depth: number, maxDepth: number): number => { // evaluate state recursively using negamax algorithm! -> wikipedia
-  if (state.isMill) return -MAXVAL
-  if (state.cntMoves >= NFIELDS) return 0
-  if (depth === maxDepth) return (state.aiTurn ? 1 : -1) * computeScoreOfNodeForAI(state);
-  return generateMoves(state).reduce((score, m) => Math.max(score, -negamaxSimple(doMove(m, cloneState(state)), depth + 1, maxDepth)), -MAXVAL);
-}
-negamaxSimple = memoize(negamaxSimple, (s: STATE) => s.hash, cache(x => Math.abs(x) >= MAXVAL));
+// alphabeta = memoize(alphabeta, (state: STATE, depth: number, maxDepth: number) => state.hash + '|' + depth + '|' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
+  if ((++searchController.nodes & 1023) === 0) checkTimeIsUp();
+  if (searchController.stop) return 0;
+
   // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL
   if (state.cntMoves >= NFIELDS) return 0
@@ -129,28 +148,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   }
   return alpha;
 }
-negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
-
-let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
-  // https://www.chessprogramming.org/NegaScout
-  if (state.isMill) return -MAXVAL
-  if (state.cntMoves >= NFIELDS) return 0
-  if (depth === maxDepth) return (state.aiTurn ? 1 : -1) * computeScoreOfNodeForAI(state);
-
-  let b = beta;
-  const moves = generateMoves(state)
-  for (let i = 0; i < moves.length; i++) {
-    let score = -negascout(doMove(moves[i], cloneState(state)), depth + 1, maxDepth, -b, -alpha)
-    if (alpha < score && score < beta && i > 1)
-      score = -negascout(doMove(moves[i], cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
-    if (score > alpha) alpha = score;
-    if (alpha >= beta)
-      break;
-    b = alpha + 1;
-  }
-  return alpha;
-}
-negascout = memoize(negascout, (s: STATE, depth: number) => s.hash + '|' + depth, cache(x => Math.abs(x) >= MAXVAL));
+// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
@@ -189,7 +187,6 @@ export class ConnectFourModelService {
 
   albe = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number) => alphabeta(state, depth, maxDepth, alpha, beta, false)
   nmax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number) => -negamax(state, depth, maxDepth, alpha, beta)
-  nsco = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number) => -negascout(state, depth, maxDepth, alpha, beta)
 
   calcScoresOfMoves = (maxDepth: number, minmaxAlgorithm = this.albe): MoveType[] => {
     if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
@@ -201,6 +198,30 @@ export class ConnectFourModelService {
         score: minmaxAlgorithm(doMove(move, cloneState(this.state)), 0, maxDepth, -MAXVAL, +MAXVAL)
       }))
     ).toSorted(cmpByScore)
+  }
+
+  searchBestMove = (maxThinkingDuration = 1000): SearchController => {
+    searchController.nodes = 0
+    searchController.start = Date.now();
+    searchController.stop = false;
+    searchController.maxThinkingDuration = maxThinkingDuration
+
+    const moves = generateMoves(this.state);
+    for (let depth = 1; depth <= 20; depth++) {
+      const bestMoves = moves.map(move => ({
+        move,
+        score: -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
+      })).toSorted(cmpByScore)
+      if (searchController.stop) break;
+      // bestMove = probePvTable();
+      // pvNum = getPvLine(currentDepth);
+      searchController.depth = depth
+      searchController.duration = Date.now() - searchController.start;
+      searchController.bestMoves = bestMoves
+      if (bestMoves[0].score < -MAXVAL + 50) break;
+      if (bestMoves[0].score > MAXVAL - 50) break;
+    }
+    return searchController;
   }
 }
 

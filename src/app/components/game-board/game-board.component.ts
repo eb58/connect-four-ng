@@ -87,15 +87,16 @@ export class GameBoardComponent {
     }
 
     this.thinking = true
-    const depth = this.gameSettings.maxDepth
-      + (this.moves.length > 10 ? 2 : 0)
-      + (this.moves.length > 20 ? 2 : 0)
-      + (this.moves.length > 25 ? 2 : 0)
     setTimeout(() => {
-      const bestMoves = this.cf.calcScoresOfMoves(depth)
+      // const bestMoves = this.cf.calcScoresOfMoves()
+      // const scores = bestMoves.reduce((acc: string, m: any) => acc + `${m.move + 1}:${m.score} `, '')
+      // console.log(`SCORES: ${scores}, MOVES:[${this.moves.join(',')}]`)
+      const searchController = this.cf.searchBestMove(2000)
+      const bestMoves = searchController.bestMoves
+      const scores = bestMoves.reduce((acc: string, m: any) => acc + `${m.move + 1}:${m.score} `, '')
       this.thinking = false
       this.doMove(bestMoves[0].move)
-      console.log(`DEPTH:${depth}, SCORES:, ${bestMoves.reduce((acc, m) => acc + `${m.move + 1}:${m.score} `, '')}, MOVES:[${this.moves.join(',')}]`)
+      console.log(searchController.depth, searchController.nodes, searchController.duration, scores)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
       else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
