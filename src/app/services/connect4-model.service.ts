@@ -23,6 +23,7 @@ const searchController: SearchController = {
 const range = (n: number) => [...Array(n).keys()]
 const sign = (x: number) => x < 0 ? -1 : 1
 const feedX = (x: any, f: any) => f(x)
+const zip = (xs: any, ys: any, f: any) => xs.map((x: any, i: number) => (f ? f(x, ys[i]) : [x, ys[i]]));
 
 const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
   add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
@@ -61,7 +62,6 @@ const cloneState = (s: STATE) => ({
   ...s,
   heightCols: [...s.heightCols],
   winningRowsCounter: [...s.winningRowsCounter],
-  board: [...s.board],
 })
 
 type STATE = {
@@ -70,8 +70,6 @@ type STATE = {
   winningRowsCounter: number[]; // counter of winning rows > 0 for AI; < 0 for human
   aiTurn: boolean;              // who's turn is it
   isMill: boolean;              // we have four in a row!
-  board: number[];
-  hash: string;
 }
 
 type MoveType = {
@@ -99,41 +97,16 @@ const doMove = (c: number, state: STATE) => {
   })
   state.cntMoves++;
   state.heightCols[c]++;
-  state.board[idxBoard] = state.aiTurn ? 1 : -1;
-  state.hash = (state.aiTurn ? 'C' : 'H') + state.board.join()
   state.aiTurn = !state.aiTurn;
   return state;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 3), 0)
+const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 2), 0)
+
 const checkTimeIsUp = () => searchController.stop = searchController.maxThinkingDuration !== 0 && Date.now() - searchController.start > searchController.maxThinkingDuration
 
-let alphabeta = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number, isMaximizingPlayer: boolean): number => {
-  if ((++searchController.nodes & 1023) === 0) checkTimeIsUp();
-  if (searchController.stop) return 0;
-
-  // minimax with alpha beta pruning -> wikipedia
-  if (state.isMill) return state.aiTurn ? -MAXVAL : MAXVAL
-  if (state.cntMoves >= NFIELDS) return 0
-  if (depth === maxDepth) return computeScoreOfNodeForAI(state)
-
-  for (const m of generateMoves(state)) {
-    const newState = doMove(m, cloneState(state))
-    const score = alphabeta(newState, depth + 1, maxDepth, alpha, beta, !isMaximizingPlayer);
-    if (isMaximizingPlayer) {
-      if (score > alpha) alpha = score;
-    } else {
-      if (score < beta) beta = score;
-    }
-    if (alpha >= beta)
-      break;
-  }
-  return isMaximizingPlayer ? alpha : beta;
-}
-// alphabeta = memoize(alphabeta, (state: STATE, depth: number, maxDepth: number) => state.hash + '|' + depth + '|' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
-
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
-  if ((++searchController.nodes & 1023) === 0) checkTimeIsUp();
+  if ((++searchController.nodes & 4095) === 0) checkTimeIsUp();
   if (searchController.stop) return 0;
 
   // evaluate state recursively using negamax algorithm! -> wikipedia
@@ -148,6 +121,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   }
   return alpha;
 }
+
 // negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
@@ -159,8 +133,6 @@ export class ConnectFourModelService {
     winningRowsCounter: winningRows.map(() => 0),
     aiTurn: false,
     isMill: false,
-    board: range(DIM.NCOL * DIM.NROW).map(() => 0),
-    hash: ''
   };
 
   state: STATE = cloneState(this.origState);
@@ -173,57 +145,35 @@ export class ConnectFourModelService {
   doMove = (m: number) => doMove(m, this.state);
   doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
 
-  checkSimpleSolutions = (moves: number[], maxDepth: number, minmaxAlgorithm: any): MoveType[] | undefined => {
-    const scoresOfMoves = moves.map(move => ({
-      move,
-      score: minmaxAlgorithm(doMove(move, cloneState(this.state)), 0, maxDepth, -MAXVAL, +MAXVAL, false)
-    }))
-    if (scoresOfMoves.some(m => m.score > MAXVAL - 50)) return scoresOfMoves // there is a move to win!
-    if (scoresOfMoves.every(m => m.score < -MAXVAL + 50)) return scoresOfMoves // all moves lead to disaster
-    if (scoresOfMoves.filter(m => m.score > -MAXVAL + 50).length === 1) return scoresOfMoves // just one move does not lead to disaster
-    // console.log( `LEV:${depth} MOVES:${moves.join(',')}`)
-    return undefined;
-  }
-
-  albe = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number) => alphabeta(state, depth, maxDepth, alpha, beta, false)
-  nmax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number) => -negamax(state, depth, maxDepth, alpha, beta)
-
-  calcScoresOfMoves = (maxDepth: number, minmaxAlgorithm = this.albe): MoveType[] => {
-    if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
-    const moves = generateMoves(this.state);
-    return (
-      range(Math.min(4, maxDepth - 2)).reduce((acc: any, maxDepth) => acc || this.checkSimpleSolutions(moves, maxDepth, minmaxAlgorithm), undefined) ||
-      moves.map(move => ({
-        move,
-        score: minmaxAlgorithm(doMove(move, cloneState(this.state)), 0, maxDepth, -MAXVAL, +MAXVAL)
-      }))
-    ).toSorted(cmpByScore)
-  }
-
   searchBestMove = (maxThinkingDuration = 1000): SearchController => {
     searchController.nodes = 0
     searchController.start = Date.now();
     searchController.stop = false;
     searchController.maxThinkingDuration = maxThinkingDuration
 
-    const moves = generateMoves(this.state);
-    for (let depth = 1; depth <= 20; depth++) {
-      const bestMoves = moves.map(move => ({
-        move,
-        score: -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
-      })).toSorted(cmpByScore)
+    let moves = generateMoves(this.state);
+    for (let depth = 2; depth <= 40; depth += 2) {
+      const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))// .map(x => x === -0 ? 0 : x)
       if (searchController.stop) break;
-      // bestMove = probePvTable();
-      // pvNum = getPvLine(currentDepth);
+      const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
       searchController.depth = depth
       searchController.duration = Date.now() - searchController.start;
       searchController.bestMoves = bestMoves
-      if (bestMoves[0].score < -MAXVAL + 50) break;
-      if (bestMoves[0].score > MAXVAL - 50) break;
+      if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50)) break;  // there is a move to win!
+      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)) break // all moves lead to disaster
+      if (bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1) break // all moves lead to disaster
+      moves = bestMoves.map((x: any) => x.move);
     }
     return searchController;
   }
+
+  calcScoresOfMoves = (thinkingTime = 1000): SearchController => {
+    if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
+    return this.searchBestMove(thinkingTime)
+  }
+  colHeight = (c: number) => this.state.heightCols[c]
 }
+
 
 // just for debugging
 const f = (x: number) => x === 0 ? '_' : x < 0 ? 'H' : 'C'

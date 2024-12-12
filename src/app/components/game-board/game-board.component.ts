@@ -72,6 +72,7 @@ export class GameBoardComponent {
     else if (this.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
+    if (this.cf.colHeight(c) >= DIM.NROW) return;
     this.doMove(c)
     if (this.isMill()) this.openInfoDialog('Gratuliere, du hast gewonnen!');
     else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
@@ -88,9 +89,6 @@ export class GameBoardComponent {
 
     this.thinking = true
     setTimeout(() => {
-      // const bestMoves = this.cf.calcScoresOfMoves()
-      // const scores = bestMoves.reduce((acc: string, m: any) => acc + `${m.move + 1}:${m.score} `, '')
-      // console.log(`SCORES: ${scores}, MOVES:[${this.moves.join(',')}]`)
       const searchController = this.cf.searchBestMove(2000)
       const bestMoves = searchController.bestMoves
       const scores = bestMoves.reduce((acc: string, m: any) => acc + `${m.move + 1}:${m.score} `, '')
@@ -108,7 +106,7 @@ export class GameBoardComponent {
     this.cf.init()
     this.cf.state.aiTurn = this.gameSettings.whoBegins === 'ai'
     moves.forEach(v => this.doMove(v));
-    if (this.cf.state.aiTurn) setTimeout(() => this.doMove(this.cf.calcScoresOfMoves(this.gameSettings.maxDepth)[0].move), 100)
+    if (this.cf.state.aiTurn) setTimeout(() => this.doMove(this.cf.calcScoresOfMoves(this.gameSettings.maxDepth).bestMoves[0].move), 100)
   }
 
   restartGame = () => {
