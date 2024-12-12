@@ -1,11 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
-import {
-  ConnectFourModelService,
-  DIM,
-  winningRows,
-  winningRowsForFields
-} from '../app/services/connect4-model.service';
+import {ConnectFourModelService, DIM, winningRows, winningRowsForFields} from '../app/services/connect4-model.service';
 
 const range = (n: number) => [...Array(n).keys()]
 let cf: ConnectFourModelService;
@@ -184,7 +179,7 @@ test('eval 8 - bad moves', () => {
   const sc = cf.calcScoresOfMoves(100)
   // console.log('eval 8', sc ) // , dumpBoard(cf.state.board))
   expect(sc.bestMoves[0].score).toBeGreaterThan(0);
-  expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL)).toBeTruthy();
+  expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 1)).toBeTruthy();
 });
 
 test('eval 9 - bad moves', () => {
@@ -206,6 +201,7 @@ test('winning 1', () => {
   // H  H  C  C  C  H  _
   // H  C  C  H  C  C  C
   const sc = cf.calcScoresOfMoves()
+  // console.log('winning 2', sc)
   expect(sc.bestMoves[0].move).toBe(5);
   expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
 });
@@ -266,8 +262,9 @@ test('winning 6', () => {
   // H  _  _  C  _  _  _
   // H  H  H  C  C  _  _
   const sc = cf.calcScoresOfMoves(3000)
-  // console.log('winning 6', m)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  // console.log('winning 6', sc)
+  expect(sc.depth).toBe(6)
+  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 6);
 });
 
 test('winning 7', () => {
@@ -280,14 +277,16 @@ test('winning 7', () => {
   // H  H  H  C  C  _  H
   const sc = cf.calcScoresOfMoves()
   // console.log('winning 7', sc)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  expect(sc.depth).toBe(10)
+  expect(sc.nodes).toBeGreaterThanOrEqual(10000)
+  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 10);
 })
 
 test('winning 8 - depth 12', () => {
   cf.doMoves([3, 6, 3, 3, 2, 4, 1, 0, 0, 3, 0, 2, 1, 3, 3, 2, 1, 1, 0, 0, 2, 1, 2, 6, 6])
   const sc = cf.calcScoresOfMoves(2000)
   // console.log('winning 8', sc)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 12);
   expect(sc.nodes).toBeGreaterThanOrEqual(10000)
   expect(sc.duration).toBeLessThan(2000)
   expect(sc.depth).toBe(12)

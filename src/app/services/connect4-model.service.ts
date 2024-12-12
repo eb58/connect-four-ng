@@ -110,7 +110,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   if (searchController.stop) return 0;
 
   // evaluate state recursively using negamax algorithm! -> wikipedia
-  if (state.isMill) return -MAXVAL
+  if (state.isMill) return -MAXVAL + depth
   if (state.cntMoves >= NFIELDS) return 0
   if (depth === maxDepth) return (state.aiTurn ? 1 : -1) * computeScoreOfNodeForAI(state);
   for (const m of generateMoves(state)) {
@@ -122,7 +122,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   return alpha;
 }
 
-// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
+//negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
@@ -152,7 +152,7 @@ export class ConnectFourModelService {
     searchController.maxThinkingDuration = maxThinkingDuration
 
     let moves = generateMoves(this.state);
-    for (let depth = 2; depth <= 40; depth += 2) {
+    for (let depth = 4; depth <= 40; depth += 2) {
       const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))// .map(x => x === -0 ? 0 : x)
       if (searchController.stop) break;
       const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
