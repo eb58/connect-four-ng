@@ -1,6 +1,6 @@
 import {Component} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
-import {Observable, filter} from 'rxjs';
+import {filter, Observable} from 'rxjs';
 import {ConnectFourModelService, DIM} from '../../services/connect4-model.service';
 import {InfoDialog} from '../info-dialog/info-dialog.component';
 import {QuestionDialog} from '../question-dialog/question-dialog.component';
@@ -16,7 +16,6 @@ export type GameSettings = {
   whoBegins: Player,
   maxDepth: number,     // skill level
 }
-const NFIELDS = DIM.NCOL * DIM.NROW
 
 @Component({
   selector: 'app-game-board',
@@ -49,7 +48,7 @@ export class GameBoardComponent {
   }
 
   isMill = (): boolean => this.cf.state.isMill
-  isDraw = (): boolean => this.moves.length === NFIELDS && !this.cf.state.isMill
+  isDraw = (): boolean => this.cf.state.cntActiveWinningRows === 0 && !this.cf.state.isMill
   doMove = (m: number) => {
     this.board[m + DIM.NCOL * (this.cf.state.heightCols[m])] = this.cf.state.aiTurn ? 'C' : 'H';
     this.moves.push(m);
@@ -89,12 +88,12 @@ export class GameBoardComponent {
 
     this.thinking = true
     setTimeout(() => {
-      const searchController = this.cf.searchBestMove(2000)
-      const bestMoves = searchController.bestMoves
-      const scores = bestMoves.reduce((acc: string, m: any) => acc + `${m.move + 1}:${m.score} `, '')
+      const sc = this.cf.searchBestMove(2000)
+      const bestMoves = sc.bestMoves
+      const scores = bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
       this.thinking = false
       this.doMove(bestMoves[0].move)
-      console.log(searchController.depth, searchController.nodes, searchController.duration, scores)
+      console.log(sc.depth, sc.nodes, sc.duration, sc.state?.cntActiveWinningRows, scores)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
       else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');

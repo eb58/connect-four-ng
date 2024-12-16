@@ -7,7 +7,8 @@ type SearchController = {
   maxThinkingDuration: number,
   depth: number,
   duration: number,
-  bestMoves: any[]
+  bestMoves: MoveType[],
+  state?: STATE,
 }
 
 const searchController: SearchController = {
@@ -55,7 +56,7 @@ export const winningRows: number[][] = range(DIM.NROW).reduce((acc: any, r: numb
 ], acc), [])
 
 // list of indices on allWinningRows for each field of board
-export const winningRowsForFields = Object.freeze(range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, [])))
+export const winningRowsForFields = range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], r, j) => r.includes(i) ? [...acc, j] : acc, []))
 
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const cloneState = (s: STATE) => ({
@@ -67,9 +68,11 @@ const cloneState = (s: STATE) => ({
 type STATE = {
   cntMoves: number;
   heightCols: number[];         // height of columns
-  winningRowsCounter: number[]; // counter of winning rows > 0 for AI; < 0 for human
+  winningRowsCounter: number[]; // counter for every winning row  ( > 0 for AI; < 0 for human)
   aiTurn: boolean;              // who's turn is it
   isMill: boolean;              // we have four in a row!
+  cntActiveWinningRows: number;
+  allowedMoves: number[];
 }
 
 type MoveType = {
@@ -77,10 +80,9 @@ type MoveType = {
   score: number;
 }
 
-const ORDER = Object.freeze([3, 4, 2, 5, 1, 6, 0])
+const ORDER = [3, 4, 2, 5, 1, 6, 0]
 const MAXVAL = 1000000
 const NEUTRAL = 77777
-const NFIELDS = DIM.NCOL * DIM.NROW
 
 const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
 
@@ -90,6 +92,7 @@ const doMove = (c: number, state: STATE) => {
     if (state.winningRowsCounter[i] === NEUTRAL) return;
     if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== (state.aiTurn ? 1 : -1)) {
       state.winningRowsCounter[i] = NEUTRAL; // to mark winning row as neutral
+      state.cntActiveWinningRows--
     } else {
       state.winningRowsCounter[i] += state.aiTurn ? 1 : -1;
       state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
@@ -101,7 +104,7 @@ const doMove = (c: number, state: STATE) => {
   return state;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 2), 0)
+const computeScoreOfNodeForAI = (state: STATE) => (state.aiTurn ? 1 : -1) * state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 2), 0)
 
 const checkTimeIsUp = () => searchController.stop = searchController.maxThinkingDuration !== 0 && Date.now() - searchController.start > searchController.maxThinkingDuration
 
@@ -109,10 +112,9 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   if ((++searchController.nodes & 4095) === 0) checkTimeIsUp();
   if (searchController.stop) return 0;
 
-  // evaluate state recursively using negamax algorithm! -> wikipedia
   if (state.isMill) return -MAXVAL + depth
-  if (state.cntMoves >= NFIELDS) return 0
-  if (depth === maxDepth) return (state.aiTurn ? 1 : -1) * computeScoreOfNodeForAI(state);
+  if (state.cntActiveWinningRows <= 0) return 0
+  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
   for (const m of generateMoves(state)) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
     if (score > alpha) alpha = score;
@@ -133,6 +135,8 @@ export class ConnectFourModelService {
     winningRowsCounter: winningRows.map(() => 0),
     aiTurn: false,
     isMill: false,
+    cntActiveWinningRows: winningRows.length,
+    allowedMoves: ORDER
   };
 
   state: STATE = cloneState(this.origState);
@@ -150,6 +154,7 @@ export class ConnectFourModelService {
     searchController.start = Date.now();
     searchController.stop = false;
     searchController.maxThinkingDuration = maxThinkingDuration
+    searchController.state = this.state
 
     let moves = generateMoves(this.state);
     for (let depth = 4; depth <= 40; depth += 2) {
