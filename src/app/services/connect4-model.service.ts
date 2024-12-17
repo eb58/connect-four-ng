@@ -73,6 +73,7 @@ type STATE = {
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
   allowedMoves: number[];
+  // hash: number,
 }
 
 type MoveType = {
@@ -80,11 +81,15 @@ type MoveType = {
   score: number;
 }
 
-const ORDER = [3, 4, 2, 5, 1, 6, 0]
 const MAXVAL = 1000000
 const NEUTRAL = 77777
 
-const generateMoves = (state: STATE): number[] => ORDER.filter(c => state.heightCols[c] < DIM.NROW);
+// const RAND_8 = () => Math.floor((Math.random() * 255) + 1)
+// const RAND_32 = () => RAND_8() << 23 | RAND_8() << 16 | RAND_8() << 8 | RAND_8();
+// const sideKey = RAND_32();
+// const pieceKeys = range(DIM.NCOL * DIM.NROW).map(() => RAND_32());
+// const HASH_PCE = (state: STATE, sq: number) => state.hash ^= pieceKeys[sq];
+// const HASH_SIDE = (state: STATE) => state.hash ^= sideKey;
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
@@ -101,11 +106,13 @@ const doMove = (c: number, state: STATE) => {
   state.cntMoves++;
   state.heightCols[c]++;
   state.aiTurn = !state.aiTurn;
+  // HASH_PCE(state, idxBoard)
+  // HASH_SIDE(state)
   return state;
 }
 
-const computeScoreOfNodeForAI = (state: STATE) => (state.aiTurn ? 1 : -1) * state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt ** 2), 0)
-
+const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
+const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt) => res + (cnt === NEUTRAL ? 0 : cnt), 0)
 const checkTimeIsUp = () => searchController.stop = searchController.maxThinkingDuration !== 0 && Date.now() - searchController.start > searchController.maxThinkingDuration
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
@@ -114,7 +121,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
 
   if (state.isMill) return -MAXVAL + depth
   if (state.cntActiveWinningRows <= 0) return 0
-  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
+  if (depth === maxDepth) return -computeScoreOfNodeForAI(state);
   for (const m of generateMoves(state)) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
     if (score > alpha) alpha = score;
@@ -136,7 +143,8 @@ export class ConnectFourModelService {
     aiTurn: false,
     isMill: false,
     cntActiveWinningRows: winningRows.length,
-    allowedMoves: ORDER
+    allowedMoves: [3, 4, 2, 5, 1, 6, 0],
+    // hash: 0
   };
 
   state: STATE = cloneState(this.origState);
@@ -148,8 +156,9 @@ export class ConnectFourModelService {
   init = () => this.state = cloneState(this.origState);
   doMove = (m: number) => doMove(m, this.state);
   doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
+  colHeight = (c: number) => this.state.heightCols[c]
 
-  searchBestMove = (maxThinkingDuration = 1000): SearchController => {
+  searchBestMove = (maxDepth = 6, maxThinkingDuration = 1000): SearchController => {
     searchController.nodes = 0
     searchController.start = Date.now();
     searchController.stop = false;
@@ -157,26 +166,25 @@ export class ConnectFourModelService {
     searchController.state = this.state
 
     let moves = generateMoves(this.state);
-    for (let depth = 4; depth <= 40; depth += 2) {
+    for (let depth = 1; depth <= maxDepth; depth += 1) {
       const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))// .map(x => x === -0 ? 0 : x)
       if (searchController.stop) break;
       const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
       searchController.depth = depth
       searchController.duration = Date.now() - searchController.start;
       searchController.bestMoves = bestMoves
-      if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50)) break;  // there is a move to win!
-      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)) break // all moves lead to disaster
-      if (bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1) break // all moves lead to disaster
-      moves = bestMoves.map((x: any) => x.move);
+      if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50) ||  // there is a move to win!
+        bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50) || // all moves lead to disaster
+        bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1) break // all moves lead to disaster
+      moves = bestMoves.map((m: MoveType) => m.move);
     }
     return searchController;
   }
 
-  calcScoresOfMoves = (thinkingTime = 1000): SearchController => {
+  calcScoresOfMoves = (maxDepth = 50, maxThinkingDuration = 1000): SearchController => {
     if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
-    return this.searchBestMove(thinkingTime)
+    return this.searchBestMove(maxDepth, maxThinkingDuration)
   }
-  colHeight = (c: number) => this.state.heightCols[c]
 }
 
 

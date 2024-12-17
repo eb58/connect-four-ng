@@ -46,7 +46,7 @@ test('draw - board almost full', () => {
   // C  H  C  H  C  H  C
   // H  H  C  H  C  C  C
   expect(cf.state.cntMoves).toBe(39)
-  const sc = cf.calcScoresOfMoves(20)
+  const sc = cf.calcScoresOfMoves()
   const m = sc.bestMoves
   //console.log( m )
   expect(m.length).toBe(2)
@@ -61,9 +61,11 @@ test('loosing 1', () => {
   // _  _  _  _  _  _  _
   // C  _  _  _  _  _  _
   // C  C  _  H  H  H  _
-  const sc = cf.calcScoresOfMoves(20)
+  const sc = cf.calcScoresOfMoves()
   const m = sc.bestMoves
-  expect(m.every(({score}) => score <= -cf.MAXVAL + 50)).toBeTruthy();
+  // console.log('loosing 1', sc)
+  expect(sc.depth).toBe(1)
+  expect(m.every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
 });
 
 test('loosing 2', () => {
@@ -71,9 +73,9 @@ test('loosing 2', () => {
   // _  _  _  _  _  _  _
   // _  _  _  C  _  _  _
   // C  _  _  H  H  H  _
-  const sc = cf.calcScoresOfMoves(20)
-  const m = sc.bestMoves
-  expect(m.every(({score}) => score <= -cf.MAXVAL + 50)).toBeTruthy();
+  const sc = cf.calcScoresOfMoves()
+  expect(sc.depth).toBe(1)
+  expect(sc.bestMoves.every(({score}) => score <= -cf.MAXVAL + 1)).toBeTruthy();
 });
 
 test('loosing 3', () => {
@@ -84,10 +86,10 @@ test('loosing 3', () => {
   // C  _  H  H  _  _  _
   // C  _  H  H  C  _  _
   // C  C  C  H  H  _  _
-  const sc = cf.calcScoresOfMoves(20)
-  const m = sc.bestMoves
-  //console.log("loosing 3",m)
-  expect(m.every(({score}) => score <= -cf.MAXVAL + 50)).toBeTruthy();
+  const sc = cf.calcScoresOfMoves()
+  // console.log('loosing 3', sc)
+  expect(sc.depth).toBe(3)
+  expect(sc.bestMoves.every(({score}) => score <= -cf.MAXVAL + 3)).toBeTruthy();
 });
 
 test('eval 1', () => {
@@ -97,10 +99,10 @@ test('eval 1', () => {
   // H  _  _  C  _  _  _
   // H  _  _  C  _  _  _
   const sc = cf.calcScoresOfMoves(20)
-  const m = sc.bestMoves
-  // console.log('eval 3', m)
-  expect(m[0].move).toBe(0);
-  expect(m.some(({score}) => score > -cf.MAXVAL + 50))
+  // console.log('eval 1', sc)
+  expect(sc.depth).toBe(1)
+  expect(sc.bestMoves[0].move).toBe(0);
+  expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 1))
 });
 
 test('eval 2', () => {
@@ -112,10 +114,10 @@ test('eval 2', () => {
   // C  _  H  H  _  _  _
   // C  C  C  H  H  _  _
   const sc = cf.calcScoresOfMoves(20)
-  const m = sc.bestMoves
-  //console.log('eval 2', m)
-  // expect(m[0].move).toBe(4);
-  expect(m.some(({score}) => score > -cf.MAXVAL + 50))
+  // console.log('eval 2', sc)
+  expect(sc.depth).toBe(3)
+  expect(sc.bestMoves[0].move).toBe(4);
+  expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 3))
 });
 
 test('eval 3', () => {
@@ -123,10 +125,11 @@ test('eval 3', () => {
   // _  _  _  _  _  _  _
   // _  _  _  C  _  _  _
   // _  _  _  H  H  _  _
-  const sc = cf.calcScoresOfMoves(20)
-  const m = sc.bestMoves
-  // console.log('eval 3', m)
-  expect(m[0].move === 2 || m[0].move === 5).toBeTruthy();
+  const sc = cf.calcScoresOfMoves(3)
+  // console.log('eval 3', sc)
+  expect(sc.depth).toBe(3)
+  expect(sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
+  expect(sc.bestMoves.slice(2).every(({score}) => score <= -cf.MAXVAL + 3))
 });
 
 
@@ -135,10 +138,12 @@ test('eval 4', () => {
   // _  _  _  _  _  _  _
   // _  _  C  _  _  _  _
   // _  _  H  _  H  _  _
-  const sc = cf.calcScoresOfMoves(20)
+  const sc = cf.calcScoresOfMoves(3)
   const m = sc.bestMoves
-  // console.log('eval 4', m)
+  // console.log('eval 4', sc)
+  expect(sc.depth).toBe(3)
   expect(m[0].move === 1 || m[0].move === 3 || m[0].move === 5).toBeTruthy();
+  expect(sc.bestMoves.slice(3).every(({score}) => score <= -cf.MAXVAL + 3))
 });
 
 test('eval 5', () => {
@@ -146,50 +151,44 @@ test('eval 5', () => {
   // _  _  _  _  _  _  _
   // _  _  _  _  _  _  _
   // C  _  _  H  H  _  _
-  const sc = cf.calcScoresOfMoves(20)
-  // console.log(m, cf.dumpBoard(cf.state.board));
+  const sc = cf.calcScoresOfMoves(3)
+  // console.log('eval 5', sc)
+  expect(sc.depth).toBe(3)
   expect(sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
+  expect(sc.bestMoves.slice(3).every(({score}) => score === -cf.MAXVAL + 3))
 });
 
 test('eval 6', () => {
-  cf.state.aiTurn = true
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  const sc = cf.calcScoresOfMoves(100)
-  // console.log('eval 6', sc)
-  expect(sc.bestMoves.some(({score}) => score > 0)).toBeTruthy();
-});
-
-test('eval 7', () => {
   cf.doMove(0)
   // _  _  _  _  _  _  _
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
-  const sc = cf.calcScoresOfMoves(100)
-  // console.log('eval 7', s)
-  expect(sc.bestMoves.some(({score}) => score >= 0)).toBeTruthy();
+  const sc = cf.calcScoresOfMoves(4)
+  // console.log('eval 6', sc)
+  expect(sc.bestMoves.some(({score}) => score >= -0)).toBeTruthy();
 });
 
-test('eval 8 - bad moves', () => {
+test('eval 7 - bad moves', () => {
   cf.doMoves([3, 0, 3, 0, 3])
   // _  _  _  H  _  _  _
   // C  _  _  H  _  _  _
   // C  _  _  H  _  _  _
-  const sc = cf.calcScoresOfMoves(100)
-  // console.log('eval 8', sc ) // , dumpBoard(cf.state.board))
-  expect(sc.bestMoves[0].score).toBeGreaterThan(0);
-  expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 1)).toBeTruthy();
+  const sc = cf.calcScoresOfMoves()
+  // console.log('eval 7', sc) // , dumpBoard(cf.state.board))
+  expect(sc.depth).toBe(1)
+  expect(sc.bestMoves.slice(1).every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
 });
 
-test('eval 9 - bad moves', () => {
+test('eval 8 - bad moves', () => {
   cf.doMoves([3, 0, 3, 0, 4])
   // _  _  _  _  _  _  _
   // C  _  _  H  _  _  _
   // C  _  _  H  H  _  _
-  const sc = cf.calcScoresOfMoves(20)
-  // console.log('eval9', s, dumpBoard(cf.state.board))
-  expect(sc.bestMoves.some(({score}) => score > -cf.MAXVAL + 50))
+  const sc = cf.calcScoresOfMoves(3)
+  // console.log('eval8', sc)
+  expect(sc.depth).toBe(3)
+  expect(sc.bestMoves[0].move === 0 || sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 2).toBeTruthy();
+  expect(sc.bestMoves.slice(3).every(({score}) => score === -cf.MAXVAL + 3))
 });
 
 test('winning 1', () => {
@@ -201,9 +200,12 @@ test('winning 1', () => {
   // H  H  C  C  C  H  _
   // H  C  C  H  C  C  C
   const sc = cf.calcScoresOfMoves()
-  // console.log('winning 2', sc)
+  // console.log('winning 1', sc)
+  expect(sc.depth).toBe(1)
   expect(sc.bestMoves[0].move).toBe(5);
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  expect(sc.bestMoves[1].move).toBe(1);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL);
+  expect(sc.bestMoves.slice(2).every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
 });
 
 test('winning 2', () => {
@@ -213,9 +215,12 @@ test('winning 2', () => {
   // H  _  _  _  _  _  C
   // H  H  _  _  _  _  C
   const sc = cf.calcScoresOfMoves()
-  // console.log('winning 2', m)
+  // console.log('winning 2', sc)
+  expect(sc.depth).toBe(1)
   expect(sc.bestMoves[0].move).toBe(6);
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  expect(sc.bestMoves[1].move).toBe(0);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL);
+  expect(sc.bestMoves.slice(2).every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
 });
 
 test('winning 3', () => {
@@ -224,9 +229,10 @@ test('winning 3', () => {
   // H  _  _  H  _  _  _
   // H  _  _  C  C  _  _
   const sc = cf.calcScoresOfMoves()
-  // console.log('winning 3', m)
+  // console.log('winning 3', sc)
+  expect(sc.depth).toBe(2)
   expect(sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 2);
 });
 
 test('winning 4', () => {
@@ -237,12 +243,13 @@ test('winning 4', () => {
   // _  _  H  _  _  _  _
   // _  _  C  _  C  _  _
   const sc = cf.calcScoresOfMoves()
-  // console.log('winning 4', m)
+  // console.log('winning 4', sc)
+  expect(sc.depth).toBe(2)
   expect(sc.bestMoves[0].move).toBe(3);
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 2);
 });
 
-test('winning 5', () => {
+test('winning 5 - depth 6', () => {
   cf.doMoves([0, 4, 0, 3, 0, 0, 2, 3, 3, 4, 2])
   // _  _  _  _  _  _  _
   // C  _  _  _  _  _  _
@@ -250,24 +257,27 @@ test('winning 5', () => {
   // H  _  H  C  C  _  _
   // H  _  H  C  C  _  _
   const sc = cf.calcScoresOfMoves()
-  // console.log('winning 5', m)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 50);
+  // console.log('winning 5', sc)
+  expect(sc.depth).toBe(6)
+  expect(sc.bestMoves[0].move).toBe(6);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 6);
 });
 
-test('winning 6', () => {
+test('winning 6 - depth 6', () => {
   cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1])
   // _  _  _  _  _  _  _
   // C  _  _  _  _  _  _
   // H  _  _  _  _  _  _
   // H  _  _  C  _  _  _
   // H  H  H  C  C  _  _
-  const sc = cf.calcScoresOfMoves(3000)
+  const sc = cf.calcScoresOfMoves(10)
   // console.log('winning 6', sc)
   expect(sc.depth).toBe(6)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 6);
+  expect(sc.bestMoves[0].move).toBe(2);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 6);
 });
 
-test('winning 7', () => {
+test('winning 7 - depth 10', () => {
   cf.doMoves([0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6])
   // _  _  C  C  _  _  _
   // _  _  H  C  _  _  H
@@ -278,17 +288,19 @@ test('winning 7', () => {
   const sc = cf.calcScoresOfMoves()
   // console.log('winning 7', sc)
   expect(sc.depth).toBe(10)
-  expect(sc.nodes).toBeGreaterThanOrEqual(10000)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 10);
+  expect(sc.nodes).toBeGreaterThan(10000)
+  expect(sc.bestMoves[0].move === 5 || sc.bestMoves[0].move === 6 || sc.bestMoves[0].move === 0).toBeTruthy();
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 10);
+  expect(sc.duration).toBeLessThan(250)
 })
 
 test('winning 8 - depth 12', () => {
   cf.doMoves([3, 6, 3, 3, 2, 4, 1, 0, 0, 3, 0, 2, 1, 3, 3, 2, 1, 1, 0, 0, 2, 1, 2, 6, 6])
-  const sc = cf.calcScoresOfMoves(2000)
+  const sc = cf.calcScoresOfMoves()
   // console.log('winning 8', sc)
-  expect(sc.bestMoves[0].score).toBeGreaterThanOrEqual(cf.MAXVAL - 12);
-  expect(sc.nodes).toBeGreaterThanOrEqual(10000)
-  expect(sc.duration).toBeLessThan(2000)
   expect(sc.depth).toBe(12)
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 12);
+  expect(sc.nodes).toBeGreaterThan(10000)
+  expect(sc.duration).toBeLessThan(1000)
 })
 

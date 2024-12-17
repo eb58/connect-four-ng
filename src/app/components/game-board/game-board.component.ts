@@ -88,7 +88,7 @@ export class GameBoardComponent {
 
     this.thinking = true
     setTimeout(() => {
-      const sc = this.cf.searchBestMove(2000)
+      const sc = this.cf.searchBestMove(50, 2000)
       const bestMoves = sc.bestMoves
       const scores = bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
       this.thinking = false
@@ -105,7 +105,7 @@ export class GameBoardComponent {
     this.cf.init()
     this.cf.state.aiTurn = this.gameSettings.whoBegins === 'ai'
     moves.forEach(v => this.doMove(v));
-    if (this.cf.state.aiTurn) setTimeout(() => this.doMove(this.cf.calcScoresOfMoves(this.gameSettings.maxDepth).bestMoves[0].move), 100)
+    if (this.cf.state.aiTurn) setTimeout(() => this.doMove(this.cf.calcScoresOfMoves().bestMoves[0].move), 100)
   }
 
   restartGame = () => {
