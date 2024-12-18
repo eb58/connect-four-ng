@@ -330,3 +330,11 @@ test('winning 10 - depth 8', () => {
   expect(sc.depth).toBe(8)
   expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 8);
 })
+
+test('winning 11 - depth 10', () => {
+  initGame('blue|5443421244553533332222')
+  const sc = cf.calcScoresOfMoves()
+  // console.log('winning 11', sc)
+  expect(sc.depth).toBe(10)
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 10);
+})

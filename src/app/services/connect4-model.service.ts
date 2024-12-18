@@ -13,6 +13,18 @@ const memoize = (f: any, hash: any, c = cache()) =>
   (...args: any[]) =>
     feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
 
+const decorator = (f: any, decorator: any) => (...args: any[]) => {
+  if (typeof decorator === 'function') {
+    return decorator() ? f(...args) : 0;
+  } else {
+    if (decorator.before && decorator.before()) {
+      const res = f(...args);
+      decorator.after && decorator.after();
+      return res;
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export type Player = 'red' | 'blue'
@@ -28,7 +40,7 @@ type STATE = {
   // hash: number,
 }
 
-export type SearchController = {
+export type SearchInfo = {
   nodes: number,
   start: number,
   stop: boolean,
@@ -103,7 +115,7 @@ const state: STATE = { // state that is used for evaluating
   // hash: 0
 };
 
-const searchController: SearchController = {
+const searchInfo: SearchInfo = {
   nodes: 0,
   start: Date.now(),
   stop: false,
@@ -137,24 +149,24 @@ const doMove = (c: number, state: STATE) => {
 
 const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
 const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
-const checkTimeIsUp = () => searchController.stop = searchController.maxThinkingDuration !== 0 && Date.now() - searchController.start > searchController.maxThinkingDuration
+const checkTimeIsUp = () => searchInfo.stop = searchInfo.maxThinkingDuration !== 0 && Date.now() - searchInfo.start > searchInfo.maxThinkingDuration
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
-  if ((++searchController.nodes & 4095) === 0) checkTimeIsUp();
-  if (searchController.stop) return 0;
-
   if (state.isMill) return -MAXVAL + depth
   if (state.cntActiveWinningRows <= 0) return 0
   if (depth === maxDepth) return -computeScoreOfNodeForAI(state);
   for (const m of generateMoves(state)) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
     if (score > alpha) alpha = score;
-    if (alpha >= beta)
-      return alpha;
+    if (alpha >= beta) return alpha;
   }
   return alpha;
 }
-
+negamax = decorator(negamax, () => {
+    if ((++searchInfo.nodes & 4095) === 0) checkTimeIsUp();
+    return !searchInfo.stop
+  }
+)
 //negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
@@ -172,30 +184,30 @@ export class ConnectFourModelService {
   doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
   colHeight = (c: number) => this.state.heightCols[c]
 
-  searchBestMove = (maxDepth = 6, maxThinkingDuration = 1000): SearchController => {
-    searchController.nodes = 0
-    searchController.start = Date.now();
-    searchController.stop = false;
-    searchController.maxThinkingDuration = maxThinkingDuration
-    searchController.state = this.state
+  searchBestMove = (maxDepth = 6, maxThinkingDuration = 1000): SearchInfo => {
+    searchInfo.nodes = 0
+    searchInfo.start = Date.now();
+    searchInfo.stop = false;
+    searchInfo.maxThinkingDuration = maxThinkingDuration
+    searchInfo.state = this.state
 
     let moves = generateMoves(this.state);
     for (let depth = 1; depth <= maxDepth; depth += 1) {
       const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))// .map(x => x === -0 ? 0 : x)
-      if (searchController.stop) break;
+      if (searchInfo.stop) break;
       const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
-      searchController.depth = depth
-      searchController.duration = Date.now() - searchController.start;
-      searchController.bestMoves = bestMoves
+      searchInfo.depth = depth
+      searchInfo.duration = Date.now() - searchInfo.start;
+      searchInfo.bestMoves = bestMoves
       if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50) ||  // there is a move to win!
         bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50) || // all moves lead to disaster
         bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1) break // all moves lead to disaster
       moves = bestMoves.map((m: MoveType) => m.move);
     }
-    return searchController;
+    return searchInfo;
   }
 
-  calcScoresOfMoves = (maxDepth = 50, maxThinkingDuration = 1000): SearchController => {
+  calcScoresOfMoves = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
     if (!this.state.side) throw Error("It must be the AI's turn!")
     return this.searchBestMove(maxDepth, maxThinkingDuration)
   }

@@ -1,7 +1,7 @@
 import {Component} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {filter, Observable} from 'rxjs';
-import {ConnectFourModelService, DIM, Player, SearchController} from '../../services/connect4-model.service';
+import {ConnectFourModelService, DIM, Player, SearchInfo} from '../../services/connect4-model.service';
 import {InfoDialog} from '../info-dialog/info-dialog.component';
 import {QuestionDialog} from '../question-dialog/question-dialog.component';
 import {SettingsDialog} from '../settings-dialog/settings-dialog.component';
@@ -135,7 +135,7 @@ export class GameBoardComponent {
     return ''
   }
 
-  infoStr = (sc: SearchController): string => {
+  infoStr = (sc: SearchInfo): string => {
     const scores = sc.bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
     return `DEPTH:${sc.depth} NODES:${sc.nodes} DURATION:${sc.duration} WRS:${sc.state.cntActiveWinningRows} SCORES:${scores} BOARD:${(this.beginner) + '|' + this.moves.join('').trim()}`
   }
