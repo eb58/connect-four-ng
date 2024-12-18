@@ -71,7 +71,7 @@ export class GameBoardComponent {
     else if (this.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
-    if (this.cf.colHeight(c) >= DIM.NROW) return;
+    if (!this.cf.isAllowedMove(c)) return;
     this.doMove(c)
     if (this.isMill()) this.openInfoDialog('Gratuliere, du hast gewonnen!');
     else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');

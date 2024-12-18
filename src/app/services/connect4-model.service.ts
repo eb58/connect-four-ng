@@ -13,17 +13,7 @@ const memoize = (f: any, hash: any, c = cache()) =>
   (...args: any[]) =>
     feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
 
-const decorator = (f: any, decorator: any) => (...args: any[]) => {
-  if (typeof decorator === 'function') {
-    return decorator() ? f(...args) : 0;
-  } else {
-    if (decorator.before && decorator.before()) {
-      const res = f(...args);
-      decorator.after && decorator.after();
-      return res;
-    }
-  }
-}
+const decorator = (f: any, decorator: any) => (...args: any[]) => decorator() ? f(...args) : 0;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -149,7 +139,6 @@ const doMove = (c: number, state: STATE) => {
 
 const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
 const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
-const checkTimeIsUp = () => searchInfo.stop = searchInfo.maxThinkingDuration !== 0 && Date.now() - searchInfo.start > searchInfo.maxThinkingDuration
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
@@ -163,15 +152,15 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   return alpha;
 }
 negamax = decorator(negamax, () => {
-    if ((++searchInfo.nodes & 4095) === 0) checkTimeIsUp();
+  if ((++searchInfo.nodes & 4095) === 0) searchInfo.stop = Date.now() - searchInfo.start > searchInfo.maxThinkingDuration
     return !searchInfo.stop
   }
 )
+
 //negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
-  DIM = DIM;
   MAXVAL = MAXVAL;
   state = state;
 
@@ -179,10 +168,9 @@ export class ConnectFourModelService {
     this.init()
   }
 
-  init = () => this.state = cloneState(state);
-  doMove = (m: number) => doMove(m, this.state);
-  doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
-  colHeight = (c: number) => this.state.heightCols[c]
+  init = (): STATE => this.state = cloneState(state);
+  doMove = (m: number): STATE => doMove(m, this.state);
+  isAllowedMove = (c: number): boolean => this.state.heightCols[c] < DIM.NROW
 
   searchBestMove = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
     searchInfo.nodes = 0
@@ -199,9 +187,10 @@ export class ConnectFourModelService {
       searchInfo.depth = depth
       searchInfo.duration = Date.now() - searchInfo.start;
       searchInfo.bestMoves = bestMoves
-      if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50) ||  // there is a move to win!
-        bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50) || // all moves lead to disaster
-        bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1) break // all moves lead to disaster
+      if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50)                  // there is a move to win!
+        || bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)               // all moves lead to disaster
+        || bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
+      ) break;
       moves = bestMoves.map((m: MoveType) => m.move);
     }
     return searchInfo;
