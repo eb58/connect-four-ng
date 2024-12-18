@@ -31,7 +31,7 @@ export class GameBoardComponent {
 
   moves: number[] = []
   board: string[] = []
-
+  aiBeginner = false;
   thinking = false;
 
   constructor(private readonly cf: ConnectFourModelService, public dialog: MatDialog) {
@@ -44,6 +44,7 @@ export class GameBoardComponent {
 
   init = () => {
     this.moves = [];
+    this.aiBeginner = this.gameSettings.whoBegins == 'ai'
     this.board = range(DIM.NROW * DIM.NCOL).map(() => ' ');
   }
 
@@ -88,16 +89,16 @@ export class GameBoardComponent {
 
     this.thinking = true
     setTimeout(() => {
-      const sc = this.cf.searchBestMove(50, 2000)
+      const sc = this.cf.searchBestMove(50, 1000)
       const bestMoves = sc.bestMoves
       const scores = bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
       this.thinking = false
       this.doMove(bestMoves[0].move)
-      console.log(sc.depth, sc.nodes, sc.duration, sc.state?.cntActiveWinningRows, scores)
+      console.log(`DEPTH:${sc.depth} NODES:${sc.nodes} DURATION:${sc.duration} WRS:${sc.state.cntActiveWinningRows} SCORES:${scores} BOARD:${(this.aiBeginner ? 'C' : 'H') + '|' + this.board.join('').trim()}`)
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
       else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
-    }, 500)
+    }, 10)
   }
 
   restart = (moves: number[] = []) => {

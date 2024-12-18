@@ -3,11 +3,12 @@ import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
 import {ConnectFourModelService, DIM, winningRows, winningRowsForFields} from '../app/services/connect4-model.service';
 
 const range = (n: number) => [...Array(n).keys()]
-let cf: ConnectFourModelService;
+
+TestBed.configureTestingModule({schemas: [CUSTOM_ELEMENTS_SCHEMA]});
+const cf = TestBed.inject(ConnectFourModelService);
 
 beforeEach(() => {
-  TestBed.configureTestingModule({schemas: [CUSTOM_ELEMENTS_SCHEMA]});
-  cf = TestBed.inject(ConnectFourModelService);
+  cf.init()
 });
 
 test('initialized correctly', () => {
@@ -18,7 +19,7 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
   expect(cf.state.cntMoves).toBe(0);
   expect(cf.state.aiTurn).toBe(false);
-  expect(cf.state.heightCols).toEqual(range(cf.origState.heightCols.length).map(() => 0));
+  expect(cf.state.heightCols).toEqual(range(DIM.NCOL).map(() => 0));
   expect(cf.state.isMill).toBe(false);
 });
 
