@@ -15,18 +15,20 @@ const memoize = (f: any, hash: any, c = cache()) =>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+export type Player = 'red' | 'blue'
+
 type STATE = {
   cntMoves: number;
   heightCols: number[];         // height of columns
   winningRowsCounter: number[]; // counter for every winning row  ( > 0 for AI; < 0 for human)
-  aiTurn: boolean;              // who's turn is it
+  side: Player;                 // who's turn is it 'blue' -> AI player 'red' -> human player
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
   allowedMoves: number[];
   // hash: number,
 }
 
-type SearchController = {
+export type SearchController = {
   nodes: number,
   start: number,
   stop: boolean,
@@ -94,7 +96,7 @@ const state: STATE = { // state that is used for evaluating
   cntMoves: 0,
   heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
   winningRowsCounter: winningRows.map(() => 0),
-  aiTurn: false,
+  side: 'red',
   isMill: false,
   cntActiveWinningRows: winningRows.length,
   allowedMoves: [3, 4, 2, 5, 1, 6, 0],
@@ -114,19 +116,20 @@ const searchController: SearchController = {
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
+  const x = (state.side === 'blue' ? 1 : -1)
   winningRowsForFields[idxBoard].forEach(i => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounter[i] === NEUTRAL) return;
-    if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== (state.aiTurn ? 1 : -1)) {
+    if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== x) {
       state.winningRowsCounter[i] = NEUTRAL; // to mark winning row as neutral
       state.cntActiveWinningRows--
     } else {
-      state.winningRowsCounter[i] += state.aiTurn ? 1 : -1;
+      state.winningRowsCounter[i] += x;
       state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
     }
   })
   state.cntMoves++;
   state.heightCols[c]++;
-  state.aiTurn = !state.aiTurn;
+  state.side = state.side === 'red' ? 'blue' : 'red';
   // HASH_PCE(state, idxBoard)
   // HASH_SIDE(state)
   return state;
@@ -193,12 +196,12 @@ export class ConnectFourModelService {
   }
 
   calcScoresOfMoves = (maxDepth = 50, maxThinkingDuration = 1000): SearchController => {
-    if (!this.state.aiTurn) throw Error("It must be the AI's turn!")
+    if (!this.state.side) throw Error("It must be the AI's turn!")
     return this.searchBestMove(maxDepth, maxThinkingDuration)
   }
 }
 
 // just for debugging
-const f = (x: number) => x === 0 ? '_' : x < 0 ? 'H' : 'C'
+const f = (x: number) => x === 0 ? '_' : x < 0 ? 'R' : 'B'
 const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
 export const dumpBoard = (board: number[]): string => '\n' + reshape(board.map(x => ` ${f(x)} `), 7).reverse().map((x: any) => x.join('')).join('\n')

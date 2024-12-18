@@ -12,25 +12,25 @@ td {
   border-radius: 50%;
 }
 
-td.human {
+td.red {
   background: #a00;
   border-color: #b00;
   border-width: 2px;
 }
 
-td.humanx {
+td.redx {
   background: #b00;
   border-color: white;
   border-width: 2px;
 }
 
-td.ai {
+td.blue {
   background: #00a;
   border-color: #00f;
   border-width: 2px;
 }
 
-td.aix {
+td.bluex {
   background: #00b;
   border-color: white;
   border-width: 2px;

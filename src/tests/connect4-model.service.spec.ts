@@ -1,11 +1,23 @@
 import {TestBed} from '@angular/core/testing';
 import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
-import {ConnectFourModelService, DIM, winningRows, winningRowsForFields} from '../app/services/connect4-model.service';
+import {
+  ConnectFourModelService,
+  DIM,
+  Player,
+  winningRows,
+  winningRowsForFields
+} from '../app/services/connect4-model.service';
 
 const range = (n: number) => [...Array(n).keys()]
 
 TestBed.configureTestingModule({schemas: [CUSTOM_ELEMENTS_SCHEMA]});
 const cf = TestBed.inject(ConnectFourModelService);
+
+const initGame = (game: string) => {
+  const x = game.split('|')
+  cf.state.side = x[0] as Player
+  x[1].split('').map(x => +x).forEach(v => cf.doMove(v));
+}
 
 beforeEach(() => {
   cf.init()
@@ -18,47 +30,45 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[1]).toEqual([0, 3, 4, 5])
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
   expect(cf.state.cntMoves).toBe(0);
-  expect(cf.state.aiTurn).toBe(false);
+  expect(cf.state.side).toBe('red');
   expect(cf.state.heightCols).toEqual(range(DIM.NCOL).map(() => 0));
   expect(cf.state.isMill).toBe(false);
 });
 
 test('whoseTurn works', () => {
-  expect(cf.state.aiTurn).toBe(false);
+  expect(cf.state.side).toBe('red');
   cf.doMove(0)
-  expect(cf.state.aiTurn).toBe(true);
+  expect(cf.state.side).toBe('blue');
   cf.doMove(3)
-  expect(cf.state.aiTurn).toBe(false);
+  expect(cf.state.side).toBe('red');
 });
 
 test('draw - full board', () => {
-  cf.state.aiTurn = true
-  cf.doMoves([3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1, 4, 1, 4])
+  initGame('blue|323336363662122226655554550000001114441414')
   expect(cf.state.cntMoves).toBe(DIM.NCOL * DIM.NROW)
   expect(cf.calcScoresOfMoves().bestMoves.length).toBe(0)
 });
 
 test('draw - board almost full', () => {
-  cf.doMoves([3, 2, 3, 3, 3, 6, 3, 6, 3, 6, 6, 2, 1, 2, 2, 2, 2, 6, 6, 5, 5, 5, 5, 4, 5, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4, 4, 4, 1])
-  // C  _  H  H  _  C  H
-  // H  H  C  H  _  H  C
-  // C  H  H  H  C  H  H
-  // H  C  C  C  H  C  C
-  // C  H  C  H  C  H  C
-  // H  H  C  H  C  C  C
-  expect(cf.state.cntMoves).toBe(39)
-  const sc = cf.calcScoresOfMoves()
-  const m = sc.bestMoves
-  //console.log( m )
-  expect(m.length).toBe(2)
-  expect(m[0].move === 1 || m[0].move === 4).toBeTruthy()
-  expect(m[0].score === 0).toBeTruthy() // -0!!
-  expect(m[1].score === 0).toBeTruthy()
-})
+    initGame('red|323336363662122226655554550000001114441')
+    // C  _  H  H  _  C  H
+    // H  H  C  H  _  H  C
+    // C  H  H  H  C  H  H
+    // H  C  C  C  H  C  C
+    // C  H  C  H  C  H  C
+    // H  H  C  H  C  C  C
+    expect(cf.state.cntMoves).toBe(39)
+    const sc = cf.calcScoresOfMoves()
+    const m = sc.bestMoves
+    expect(m.length).toBe(2)
+    expect(m[0].move === 1 || m[0].move === 4).toBeTruthy()
+    expect(m[0].score === 0).toBeTruthy() // -0!!
+    expect(m[1].score === 0).toBeTruthy()
+  }
+)
 
 test('loosing 1', () => {
-  cf.state.aiTurn = true
-  cf.doMoves([0, 3, 0, 4, 1, 5])
+  initGame('blue|030415')
   // _  _  _  _  _  _  _
   // C  _  _  _  _  _  _
   // C  C  _  H  H  H  _
@@ -70,7 +80,7 @@ test('loosing 1', () => {
 });
 
 test('loosing 2', () => {
-  cf.doMoves([3, 3, 4, 0, 5])
+  initGame('blue|33405')
   // _  _  _  _  _  _  _
   // _  _  _  C  _  _  _
   // C  _  _  H  H  H  _
@@ -80,8 +90,7 @@ test('loosing 2', () => {
 });
 
 test('loosing 3', () => {
-  cf.state.aiTurn = true
-  cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1, 2, 4, 3, 3, 2])
+  initGame('blue|04032300124332')
   // _  _  _  _  _  _  _
   // H  _  _  C  _  _  _
   // C  _  H  H  _  _  _
@@ -94,35 +103,36 @@ test('loosing 3', () => {
 });
 
 test('eval 1', () => {
-  cf.doMoves([0, 3, 0, 3, 0])
+  initGame('red|03030')
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
   // H  _  _  C  _  _  _
   // H  _  _  C  _  _  _
   const sc = cf.calcScoresOfMoves(20)
-  // console.log('eval 1', sc)
+  // console.log('eval 1'sc)
   expect(sc.depth).toBe(1)
   expect(sc.bestMoves[0].move).toBe(0);
   expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 1))
 });
 
 test('eval 2', () => {
-  cf.state.aiTurn = true
-  cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1, 2])
-  // _  _  _  _  _  _  _
-  // H  _  _  _  _  _  _
-  // C  _  _  _  _  _  _
-  // C  _  H  H  _  _  _
-  // C  C  C  H  H  _  _
-  const sc = cf.calcScoresOfMoves(20)
-  // console.log('eval 2', sc)
-  expect(sc.depth).toBe(3)
-  expect(sc.bestMoves[0].move).toBe(4);
-  expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 3))
-});
+    initGame('blue|0403230012')
+    // _  _  _  _  _  _  _
+    // H  _  _  _  _  _  _
+    // C  _  _  _  _  _  _
+    // C  _  H  H  _  _  _
+    // C  C  C  H  H  _  _
+    const sc = cf.calcScoresOfMoves(20)
+    // console.log('eval 2', sc)
+    expect(sc.depth).toBe(3)
+    expect(sc.bestMoves[0].move).toBe(4);
+    expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 3))
+  }
+)
+;
 
 test('eval 3', () => {
-  cf.doMoves([3, 3, 4])
+  initGame('red|334')
   // _  _  _  _  _  _  _
   // _  _  _  C  _  _  _
   // _  _  _  H  H  _  _
@@ -133,9 +143,8 @@ test('eval 3', () => {
   expect(sc.bestMoves.slice(2).every(({score}) => score <= -cf.MAXVAL + 3))
 });
 
-
 test('eval 4', () => {
-  cf.doMoves([2, 6, 4])
+  initGame('red|264')
   // _  _  _  _  _  _  _
   // _  _  C  _  _  _  _
   // _  _  H  _  H  _  _
@@ -148,7 +157,7 @@ test('eval 4', () => {
 });
 
 test('eval 5', () => {
-  cf.doMoves([3, 0, 4])
+  initGame('red|304')
   // _  _  _  _  _  _  _
   // _  _  _  _  _  _  _
   // C  _  _  H  H  _  _
@@ -160,7 +169,7 @@ test('eval 5', () => {
 });
 
 test('eval 6', () => {
-  cf.doMove(0)
+  initGame('red|0')
   // _  _  _  _  _  _  _
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
@@ -170,7 +179,7 @@ test('eval 6', () => {
 });
 
 test('eval 7 - bad moves', () => {
-  cf.doMoves([3, 0, 3, 0, 3])
+  initGame('red|30303')
   // _  _  _  H  _  _  _
   // C  _  _  H  _  _  _
   // C  _  _  H  _  _  _
@@ -181,7 +190,7 @@ test('eval 7 - bad moves', () => {
 });
 
 test('eval 8 - bad moves', () => {
-  cf.doMoves([3, 0, 3, 0, 4])
+  initGame('red|30304')
   // _  _  _  _  _  _  _
   // C  _  _  H  _  _  _
   // C  _  _  H  H  _  _
@@ -193,7 +202,7 @@ test('eval 8 - bad moves', () => {
 });
 
 test('winning 1', () => {
-  cf.doMoves([3, 3, 3, 3, 3, 2, 3, 4, 0, 2, 0, 2, 2, 4, 4, 0, 4, 4, 4, 5, 5, 5, 5, 6, 5, 1, 1])
+  initGame('red|333332340202244044455556511')
   // _  _  _  H  H  _  _
   // _  _  _  H  C  H  _
   // _  _  H  C  H  H  _
@@ -210,7 +219,7 @@ test('winning 1', () => {
 });
 
 test('winning 2', () => {
-  cf.doMoves([0, 6, 0, 6, 0, 6, 1])
+  initGame('red|0606061')
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  C
   // H  _  _  _  _  _  C
@@ -225,20 +234,19 @@ test('winning 2', () => {
 });
 
 test('winning 3', () => {
-  cf.doMoves([0, 3, 0, 4, 3])
+  initGame('red|03043')
   // _  _  _  _  _  _  _
   // H  _  _  H  _  _  _
   // H  _  _  C  C  _  _
   const sc = cf.calcScoresOfMoves()
-  // console.log('winning 3', sc)
+  // console.log('winning 3'sc)
   expect(sc.depth).toBe(2)
   expect(sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
   expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 2);
 });
 
 test('winning 4', () => {
-  cf.state.aiTurn = true
-  cf.doMoves([2, 2, 4, 2])
+  initGame('blue|2242')
   // _  _  _  _  _  _  _
   // _  _  H  _  _  _  _
   // _  _  H  _  _  _  _
@@ -251,7 +259,7 @@ test('winning 4', () => {
 });
 
 test('winning 5 - depth 6', () => {
-  cf.doMoves([0, 4, 0, 3, 0, 0, 2, 3, 3, 4, 2])
+  initGame('red|04030023342')
   // _  _  _  _  _  _  _
   // C  _  _  _  _  _  _
   // H  _  _  H  _  _  _
@@ -265,7 +273,7 @@ test('winning 5 - depth 6', () => {
 });
 
 test('winning 6 - depth 6', () => {
-  cf.doMoves([0, 4, 0, 3, 2, 3, 0, 0, 1])
+  initGame('red|040323001')
   // _  _  _  _  _  _  _
   // C  _  _  _  _  _  _
   // H  _  _  _  _  _  _
@@ -279,7 +287,7 @@ test('winning 6 - depth 6', () => {
 });
 
 test('winning 7 - depth 10', () => {
-  cf.doMoves([0, 4, 1, 3, 2, 3, 2, 3, 3, 2, 2, 3, 2, 2, 6, 3, 6, 1, 6, 6, 6])
+  initGame('red|041323233223226361666')
   // _  _  C  C  _  _  _
   // _  _  H  C  _  _  H
   // _  _  H  H  _  _  C
@@ -295,8 +303,18 @@ test('winning 7 - depth 10', () => {
   expect(sc.duration).toBeLessThan(250)
 })
 
-test('winning 8 - depth 12', () => {
-  cf.doMoves([3, 6, 3, 3, 2, 4, 1, 0, 0, 3, 0, 2, 1, 3, 3, 2, 1, 1, 0, 0, 2, 1, 2, 6, 6])
+test('winning 8 - depth 10', () => {
+  initGame('blue|5443421244553533332222')
+  const sc = cf.calcScoresOfMoves()
+  // console.log('winning 8', sc)
+  expect(sc.depth).toBe(10)
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 10);
+  expect(sc.nodes).toBeGreaterThan(10000)
+  expect(sc.duration).toBeLessThan(1000)
+})
+
+test('winning 9 - depth 12', () => {
+  initGame('red|3633241003021332110021266')
   const sc = cf.calcScoresOfMoves()
   // console.log('winning 8', sc)
   expect(sc.depth).toBe(12)
@@ -305,3 +323,10 @@ test('winning 8 - depth 12', () => {
   expect(sc.duration).toBeLessThan(1000)
 })
 
+test('winning 10 - depth 8', () => {
+  initGame('red|33333535212225510112245514444')
+  const sc = cf.calcScoresOfMoves()
+  // console.log('winning 10', sc)
+  expect(sc.depth).toBe(8)
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 8);
+})

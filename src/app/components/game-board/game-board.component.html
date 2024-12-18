@@ -24,8 +24,12 @@
     <button mat-fab color="primary" matTooltip="Settings" (click)="openSettings()">
       <mat-icon>settings</mat-icon>
     </button>
+    <button (click)="hint()" color="primary" mat-fab matTooltip="Hint">
+      <mat-icon>favorite</mat-icon>
+    </button>
   </mat-card-actions>
   <div *ngIf="thinking" style="display:flex; justify-content: center;">
     <mat-progress-spinner mode="indeterminate" diameter="30"></mat-progress-spinner>
   </div>
+  <pre>{{ hintStr }}</pre>
 </mat-card>
