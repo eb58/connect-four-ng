@@ -184,7 +184,7 @@ export class ConnectFourModelService {
   doMoves = (moves: number[]) => moves.forEach(v => this.doMove(v));
   colHeight = (c: number) => this.state.heightCols[c]
 
-  searchBestMove = (maxDepth = 6, maxThinkingDuration = 1000): SearchInfo => {
+  searchBestMove = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
     searchInfo.nodes = 0
     searchInfo.start = Date.now();
     searchInfo.stop = false;
@@ -207,10 +207,6 @@ export class ConnectFourModelService {
     return searchInfo;
   }
 
-  calcScoresOfMoves = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
-    if (!this.state.side) throw Error("It must be the AI's turn!")
-    return this.searchBestMove(maxDepth, maxThinkingDuration)
-  }
 }
 
 // just for debugging
