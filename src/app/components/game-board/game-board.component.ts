@@ -21,7 +21,7 @@ export type GameSettings = {
 })
 export class GameBoardComponent {
   settings = localStorage.getItem('connect-4-settings') || 'false'
-  gameSettings: GameSettings = JSON.parse(this.settings) || {beginner: 'red', maxDepth: 6};
+  gameSettings: GameSettings = JSON.parse(this.settings) || {beginner: -1, maxDepth: 6};
   info = 'Bitte klicke in die Spalte, in die du einen Stein einwerfen möchtest.'
 
   NROW = range(DIM.NROW).reverse();
@@ -29,14 +29,14 @@ export class GameBoardComponent {
 
   moves: number[] = []
   board: string[] = []
-  beginner: Player = 'red';
+  beginner: Player = -1;
   thinking = false;
   hintStr = '';
 
   constructor(private readonly cf: ConnectFourModelService, public dialog: MatDialog) {
     this.init()
-    if (this.gameSettings.beginner === 'blue') {
-      this.cf.state.side = 'blue'
+    if (this.gameSettings.beginner === 1) {
+      this.cf.state.side = 1
       this.actAsAI()
     }
   }
@@ -50,7 +50,7 @@ export class GameBoardComponent {
   isMill = (): boolean => this.cf.state.isMill
   isDraw = (): boolean => this.cf.state.cntActiveWinningRows === 0 && !this.cf.state.isMill
   doMove = (m: number) => {
-    this.board[m + DIM.NCOL * (this.cf.state.heightCols[m])] = this.cf.state.side;
+    this.board[m + DIM.NCOL * (this.cf.state.heightCols[m])] = this.cf.state.side === 1 ? 'blue' : 'red';
     this.moves.push(m);
     this.cf.doMove(m);
   }
@@ -100,12 +100,12 @@ export class GameBoardComponent {
     this.cf.state.side = side
     this.beginner = side
     moves.forEach(v => this.doMove(v));
-    if (this.cf.state.side === 'blue') this.actAsAI()
+    if (this.cf.state.side === 1) this.actAsAI()
   }
 
   initGame = (game: string) => {
     const x = game.trim().split('|')
-    this.restart(x[1].split('').map(x => +x), x[0] as Player)
+    this.restart(x[1].split('').map(x => +x), x[0] === 'blue' ? 1 : -1)
   }
 
   restartGame = () => {

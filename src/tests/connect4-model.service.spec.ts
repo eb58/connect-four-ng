@@ -1,12 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
-import {
-  ConnectFourModelService,
-  DIM,
-  Player,
-  winningRows,
-  winningRowsForFields
-} from '../app/services/connect4-model.service';
+import {ConnectFourModelService, DIM, winningRows, winningRowsForFields} from '../app/services/connect4-model.service';
 
 const range = (n: number) => [...Array(n).keys()]
 
@@ -15,7 +9,7 @@ const cf = TestBed.inject(ConnectFourModelService);
 
 const initGame = (game: string) => {
   const x = game.split('|')
-  cf.state.side = x[0] as Player
+  cf.state.side = x[0] === 'blue' ? 1 : -1
   x[1].split('').map(x => +x).forEach(v => cf.doMove(v));
 }
 
@@ -30,17 +24,17 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[1]).toEqual([0, 3, 4, 5])
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
   expect(cf.state.cntMoves).toBe(0);
-  expect(cf.state.side).toBe('red');
+  expect(cf.state.side).toBe(-1);
   expect(cf.state.heightCols).toEqual(range(DIM.NCOL).map(() => 0));
   expect(cf.state.isMill).toBe(false);
 });
 
 test('whoseTurn works', () => {
-  expect(cf.state.side).toBe('red');
+  expect(cf.state.side).toBe(-1);
   cf.doMove(0)
-  expect(cf.state.side).toBe('blue');
+  expect(cf.state.side).toBe(1);
   cf.doMove(3)
-  expect(cf.state.side).toBe('red');
+  expect(cf.state.side).toBe(-1);
 });
 
 test('draw - full board', () => {

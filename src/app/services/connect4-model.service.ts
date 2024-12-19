@@ -17,13 +17,13 @@ const decorator = (f: any, decorator: any) => (...args: any[]) => decorator() ? 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export type Player = 'red' | 'blue'
+export type Player = -1 | 1
 
 type STATE = {
   cntMoves: number;
   heightCols: number[];         // height of columns
   winningRowsCounter: number[]; // counter for every winning row  ( > 0 for AI; < 0 for human)
-  side: Player;                 // who's turn is it 'blue' -> AI player 'red' -> human player
+  side: Player;                 // who's turn is it 1 -> 'blue' -> AI player -1 -> 'red' -> human player
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
   allowedMoves: number[];
@@ -96,7 +96,7 @@ const state: STATE = { // state that is used for evaluating
   cntMoves: 0,
   heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
   winningRowsCounter: winningRows.map(() => 0),
-  side: 'red',
+  side: -1,
   isMill: false,
   cntActiveWinningRows: winningRows.length,
   allowedMoves: [3, 4, 2, 5, 1, 6, 0],
@@ -116,27 +116,26 @@ const timeOut = () => Date.now() - searchInfo.start > searchInfo.maxThinkingDura
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
-  const x = (state.side === 'blue' ? 1 : -1)
   winningRowsForFields[idxBoard].forEach(i => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounter[i] === NEUTRAL) return;
-    if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== x) {
+    if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== state.side) {
       state.winningRowsCounter[i] = NEUTRAL; // to mark winning row as neutral
       state.cntActiveWinningRows--
     } else {
-      state.winningRowsCounter[i] += x;
+      state.winningRowsCounter[i] += state.side;
       state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
     }
   })
   state.cntMoves++;
   state.heightCols[c]++;
-  state.side = state.side === 'red' ? 'blue' : 'red';
+  state.side = state.side === 1 ? -1 : 1;
   // HASH_PCE(state, idxBoard)
   // HASH_SIDE(state)
   return state;
 }
 
 const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
-const computeScoreOfNodeForAI = (state: STATE) => (state.side === 'blue' ? 1 : -1) * state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
+const computeScoreOfNodeForAI = (state: STATE) => state.side * state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth

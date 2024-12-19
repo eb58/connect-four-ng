@@ -14,8 +14,8 @@
   <mat-form-field>
     <mat-label>Wer fängt an</mat-label>
     <mat-select [(value)]="gameSettings.beginner">
-      <mat-option value="red">Spieler</mat-option>
-      <mat-option value="blue">Computer</mat-option>
+      <mat-option [value]="-1">Spieler</mat-option>
+      <mat-option [value]="1">Computer</mat-option>
     </mat-select>
   </mat-form-field>
 </div>
