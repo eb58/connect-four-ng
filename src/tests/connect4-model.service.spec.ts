@@ -123,7 +123,6 @@ test('eval 2', () => {
     expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 3))
   }
 )
-;
 
 test('eval 3', () => {
   initGame('red|334')
