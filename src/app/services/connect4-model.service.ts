@@ -27,7 +27,8 @@ type STATE = {
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
   allowedMoves: number[];
-  // hash: number,
+  // board: string[];
+  // hash: string,
 }
 
 export type SearchInfo = {
@@ -84,11 +85,12 @@ const cloneState = (s: STATE) => ({
   ...s,
   heightCols: [...s.heightCols],
   winningRowsCounter: [...s.winningRowsCounter],
+  // board: [...s.board],
 })
 // const RAND_8 = () => Math.floor((Math.random() * 255) + 1)
 // const RAND_32 = () => RAND_8() << 23 | RAND_8() << 16 | RAND_8() << 8 | RAND_8();
 // const sideKey = RAND_32();
-// const pieceKeys = range(DIM.NCOL * DIM.NROW).map(() => RAND_32());
+// const pieceKeys = range(2*DIM.NCOL * DIM.NROW).map(() => RAND_32());
 // const HASH_PCE = (state: STATE, sq: number) => state.hash ^= pieceKeys[sq];
 // const HASH_SIDE = (state: STATE) => state.hash ^= sideKey;
 
@@ -100,7 +102,8 @@ const state: STATE = { // state that is used for evaluating
   isMill: false,
   cntActiveWinningRows: winningRows.length,
   allowedMoves: [3, 4, 2, 5, 1, 6, 0],
-  // hash: 0
+  // board: range(DIM.NCOL * DIM.NROW).map(() => ' '),
+  // hash: ''
 };
 
 const searchInfo: SearchInfo = {
@@ -128,6 +131,8 @@ const doMove = (c: number, state: STATE) => {
   })
   state.cntMoves++;
   state.heightCols[c]++;
+  // state.board[idxBoard] = state.side === 1 ? 'B' : 'R'
+  // state.hash = state.board.join('')
   state.side = state.side === 1 ? -1 : 1;
   // HASH_PCE(state, idxBoard)
   // HASH_SIDE(state)
@@ -150,7 +155,25 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
 
-//negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
+let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
+  if (state.isMill) return -MAXVAL + depth
+  if (state.cntActiveWinningRows <= 0) return 0
+  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
+  let [lo, hi] = [alpha, beta];
+  const moves = generateMoves(state)
+  for (let j = 0; j < moves.length; j++) {
+    let t = -negascout(doMove(moves[j], cloneState(state)), depth + 1, maxDepth, -hi, -lo)
+    if (lo < t && t < beta && j > 0 && depth < maxDepth - 1)
+      t = -negascout(doMove(moves[j], cloneState(state)), depth + 1, maxDepth, -beta, -t)
+    if (t > lo) lo = t
+    if (lo >= beta) return lo
+    hi = lo + 1
+  }
+  return lo;
+}
+negascout = decorator(negascout, () => (++searchInfo.nodes & 4095) && !timeOut())
+
+// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + '-' + depth + '-' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
@@ -172,7 +195,7 @@ export class ConnectFourModelService {
 
     let moves = generateMoves(this.state);
     for (let depth = 1; depth <= maxDepth; depth++) {
-      const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))
+      const scores = moves.map(move => -negascout(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))
       if (timeOut()) break;
       const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
       searchInfo.depth = depth
