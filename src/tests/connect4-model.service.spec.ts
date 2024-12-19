@@ -169,13 +169,13 @@ test('eval 5', () => {
 });
 
 test('eval 6', () => {
-  initGame('red|0')
-  // _  _  _  _  _  _  _
+  initGame('red|030')
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
-  const sc = cf.searchBestMove(4)
-  // console.log('eval 6', sc)
-  expect(sc.bestMoves.some(({score}) => score >= -0)).toBeTruthy();
+  // H  _  _  C  _  _  _
+  expect(cf.searchBestMove(3).bestMoves.some(({score}) => score >= 0)).toBeTruthy();
+  expect(cf.searchBestMove(4).bestMoves.some(({score}) => score >= 0)).toBeTruthy();
+  expect(cf.searchBestMove(5).bestMoves.some(({score}) => score >= 0)).toBeTruthy();
 });
 
 test('eval 7 - bad moves', () => {

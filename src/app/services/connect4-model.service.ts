@@ -33,12 +33,10 @@ type STATE = {
 export type SearchInfo = {
   nodes: number,
   start: number,
-  stop: boolean,
   maxThinkingDuration: number,
   depth: number,
   duration: number,
   bestMoves: MoveType[],
-  state: STATE,
 }
 
 type MoveType = {
@@ -108,13 +106,13 @@ const state: STATE = { // state that is used for evaluating
 const searchInfo: SearchInfo = {
   nodes: 0,
   start: Date.now(),
-  stop: false,
   maxThinkingDuration: 0,
   depth: 0,
   duration: 0,
   bestMoves: [],
-  state: cloneState(state)
 }
+
+const timeOut = () => Date.now() - searchInfo.start > searchInfo.maxThinkingDuration
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
@@ -138,12 +136,12 @@ const doMove = (c: number, state: STATE) => {
 }
 
 const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
-const computeScoreOfNodeForAI = (state: STATE) => state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
+const computeScoreOfNodeForAI = (state: STATE) => (state.side === 'blue' ? 1 : -1) * state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
   if (state.cntActiveWinningRows <= 0) return 0
-  if (depth === maxDepth) return -computeScoreOfNodeForAI(state);
+  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
   for (const m of generateMoves(state)) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
     if (score > alpha) alpha = score;
@@ -151,11 +149,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   }
   return alpha;
 }
-negamax = decorator(negamax, () => {
-  if ((++searchInfo.nodes & 4095) === 0) searchInfo.stop = Date.now() - searchInfo.start > searchInfo.maxThinkingDuration
-    return !searchInfo.stop
-  }
-)
+negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
 
 //negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + depth, cache(x => Math.abs(x) >= MAXVAL));
 
@@ -175,14 +169,12 @@ export class ConnectFourModelService {
   searchBestMove = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
     searchInfo.nodes = 0
     searchInfo.start = Date.now();
-    searchInfo.stop = false;
     searchInfo.maxThinkingDuration = maxThinkingDuration
-    searchInfo.state = this.state
 
     let moves = generateMoves(this.state);
-    for (let depth = 1; depth <= maxDepth; depth += 1) {
-      const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))// .map(x => x === -0 ? 0 : x)
-      if (searchInfo.stop) break;
+    for (let depth = 1; depth <= maxDepth; depth++) {
+      const scores = moves.map(move => -negamax(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))
+      if (timeOut()) break;
       const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
       searchInfo.depth = depth
       searchInfo.duration = Date.now() - searchInfo.start;

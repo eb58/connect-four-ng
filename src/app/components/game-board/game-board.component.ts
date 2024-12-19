@@ -137,7 +137,7 @@ export class GameBoardComponent {
 
   infoStr = (sc: SearchInfo): string => {
     const scores = sc.bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
-    return `DEPTH:${sc.depth} NODES:${sc.nodes} DURATION:${sc.duration} WRS:${sc.state.cntActiveWinningRows} SCORES:${scores} BOARD:${(this.beginner) + '|' + this.moves.join('').trim()}`
+    return `DEPTH:${sc.depth} NODES:${sc.nodes} DURATION:${sc.duration} SCORES:${scores} BOARD:${(this.beginner) + '|' + this.moves.join('').trim()}`
   }
 
   hint() {
@@ -146,7 +146,7 @@ export class GameBoardComponent {
       const sc = this.cf.searchBestMove(this.gameSettings.maxDepth, 1500)
       this.thinking = false
       console.log(this.infoStr(sc))
-      this.hintStr = `Bester Zug für ${sc.state.side}: Spalte ${sc.bestMoves[0].move + 1}`
+      this.hintStr = `Bester Zug - Spalte ${sc.bestMoves[0].move + 1}`
     }, 10)
   }
 }
