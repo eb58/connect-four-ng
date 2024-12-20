@@ -194,12 +194,11 @@ test('eval 8 - bad moves', () => {
   expect(sc.bestMoves.slice(3).every(({score}) => score === -cf.MAXVAL + 3))
 });
 
-xtest('eval 9', () => {
+test('eval 9', () => {
   initGame('blue|')
   const sc1 = cf.searchBestMove(4)
-  const sc2 = cf.searchBestMove(5)
-  console.log('eval9', sc1, sc2)
   expect(sc1.bestMoves.every(({score}) => score > 0)).toBeTruthy()
+  const sc2 = cf.searchBestMove(5)
   expect(sc2.bestMoves.every(({score}) => score < 0)).toBeTruthy()
 })
 
