@@ -3,7 +3,6 @@ import {Injectable} from '@angular/core';
 const range = (n: number) => [...Array(n).keys()]
 const sign = (x: number) => x < 0 ? -1 : 1
 const feedX = (x: any, f: any) => f(x)
-const zip = (xs: any, ys: any, f: any) => xs.map((x: any, i: number) => (f ? f(x, ys[i]) : [x, ys[i]]));
 
 const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
   add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
@@ -33,10 +32,8 @@ type STATE = {
 
 export type SearchInfo = {
   nodes: number,
-  start: number,
-  maxThinkingDuration: number,
+  stopAt: number,
   depth: number,
-  duration: number,
   bestMoves: MoveType[],
 }
 
@@ -108,14 +105,12 @@ const state: STATE = { // state that is used for evaluating
 
 const searchInfo: SearchInfo = {
   nodes: 0,
-  start: Date.now(),
-  maxThinkingDuration: 0,
+  stopAt: 0,
   depth: 0,
-  duration: 0,
   bestMoves: [],
 }
 
-const timeOut = () => Date.now() - searchInfo.start > searchInfo.maxThinkingDuration
+const timeOut = () => Date.now() >= searchInfo.stopAt
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
@@ -140,12 +135,12 @@ const doMove = (c: number, state: STATE) => {
 }
 
 const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
-const computeScoreOfNodeForAI = (state: STATE) => state.side * state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
+const computeScoreOfNode = (state: STATE) => state.side * state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
   if (state.cntActiveWinningRows <= 0) return 0
-  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
+  if (depth === maxDepth) return computeScoreOfNode(state);
   for (const m of generateMoves(state)) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
     if (score > alpha) alpha = score;
@@ -154,11 +149,12 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   return alpha;
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
+// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + '-' + depth + '-' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
 
 let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
   if (state.cntActiveWinningRows <= 0) return 0
-  if (depth === maxDepth) return computeScoreOfNodeForAI(state);
+  if (depth === maxDepth) return computeScoreOfNode(state);
   let [lo, hi] = [alpha, beta];
   const moves = generateMoves(state)
   for (let j = 0; j < moves.length; j++) {
@@ -172,8 +168,6 @@ let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, b
   return lo;
 }
 negascout = decorator(negascout, () => (++searchInfo.nodes & 4095) && !timeOut())
-
-// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + '-' + depth + '-' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
@@ -190,19 +184,24 @@ export class ConnectFourModelService {
 
   searchBestMove = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
     searchInfo.nodes = 0
-    searchInfo.start = Date.now();
-    searchInfo.maxThinkingDuration = maxThinkingDuration
+    searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
     let moves = generateMoves(this.state);
     for (let depth = 1; depth <= maxDepth; depth++) {
-      const scores = moves.map(move => -negascout(doMove(move, cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL))
+      let bestMoves: MoveType[] = []
+      for (let i = 0; i < moves.length; i++) {
+        const score = -negascout(doMove(moves[i], cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
+        bestMoves.push({move: moves[i], score});
+        if (score > MAXVAL - 50) {
+          searchInfo.depth = depth
+          searchInfo.bestMoves = bestMoves.sort(cmpByScore)
+          return searchInfo
+        }
+      }
       if (timeOut()) break;
-      const bestMoves = zip(moves, scores, (move: number, score: number) => ({move, score})).sort(cmpByScore)
       searchInfo.depth = depth
-      searchInfo.duration = Date.now() - searchInfo.start;
-      searchInfo.bestMoves = bestMoves
-      if (bestMoves.some((m: MoveType) => m.score > MAXVAL - 50)                  // there is a move to win!
-        || bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)               // all moves lead to disaster
+      searchInfo.bestMoves = bestMoves.sort(cmpByScore)
+      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)               // all moves lead to disaster
         || bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
       ) break;
       moves = bestMoves.map((m: MoveType) => m.move);
