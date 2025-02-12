@@ -83,7 +83,7 @@ export class GameBoardComponent {
     this.hintStr = ''
     this.thinking = true
     setTimeout(() => {
-      const sc = this.cf.searchBestMove(this.gameSettings.maxDepth, 1500)
+      const sc = this.cf.searchBestMove(this.gameSettings.maxThinkingTime)
       const bestMoves = sc.bestMoves
       this.thinking = false
       console.log(this.infoStr(sc))
@@ -137,13 +137,13 @@ export class GameBoardComponent {
 
   infoStr = (sc: SearchInfo): string => {
     const scores = sc.bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
-    return `DEPTH:${sc.depth} NODES:${sc.nodes} DURATION:${sc.duration} SCORES:${scores} BOARD:${(this.beginner) + '|' + this.moves.join('').trim()}`
+    return `DEPTH:${sc.depth} NODES:${sc.nodes} SCORES:${scores} BOARD:${(this.beginner) + '|' + this.moves.join('').trim()}`
   }
 
   hint() {
     this.thinking = true
     setTimeout(() => {
-      const sc = this.cf.searchBestMove(this.gameSettings.maxDepth, 1500)
+      const sc = this.cf.searchBestMove(this.gameSettings.maxThinkingTime)
       this.thinking = false
       console.log(this.infoStr(sc))
       this.hintStr = `Bester Zug - Spalte ${sc.bestMoves[0].move + 1}`

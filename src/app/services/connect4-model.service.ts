@@ -182,12 +182,12 @@ export class ConnectFourModelService {
   doMove = (m: number): STATE => doMove(m, this.state);
   isAllowedMove = (c: number): boolean => this.state.heightCols[c] < DIM.NROW
 
-  searchBestMove = (maxDepth = 50, maxThinkingDuration = 1000): SearchInfo => {
+  searchBestMove = (maxThinkingDuration = 1000): SearchInfo => {
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
     let moves = generateMoves(this.state);
-    for (let depth = 1; depth <= maxDepth; depth++) {
+    for (let depth = 1; depth <= 100; depth++) {
       let bestMoves: MoveType[] = []
       for (let i = 0; i < moves.length; i++) {
         const score = -negascout(doMove(moves[i], cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
@@ -201,7 +201,7 @@ export class ConnectFourModelService {
       if (timeOut()) break;
       searchInfo.depth = depth
       searchInfo.bestMoves = bestMoves.sort(cmpByScore)
-      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)               // all moves lead to disaster
+      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)              // all moves lead to disaster
         || bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
       ) break;
       moves = bestMoves.map((m: MoveType) => m.move);
