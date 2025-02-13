@@ -185,7 +185,7 @@ test('eval 8 - bad moves', () => {
   // C  _  _  H  _  _  _
   // C  _  _  H  H  _  _
   const sc = cf.searchBestMove()
-  console.log('eval8', sc)
+  // console.log('eval8', sc)
   expect(sc.bestMoves[0].move === 0 || sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
   expect(sc.bestMoves.slice(4).every(({score}) => score === -cf.MAXVAL + 3))
 });
