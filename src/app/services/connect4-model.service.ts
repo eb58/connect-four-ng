@@ -10,7 +10,7 @@ const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
 })
 const memoize = (f: any, hash: any, c = cache()) =>
   (...args: any[]) =>
-    feedX(hash(...args), (h: any) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
+    feedX(hash(...args), (h: number) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
 
 const decorator = (f: any, decorator: any) => (...args: any[]) => decorator() ? f(...args) : 0;
 
@@ -26,8 +26,7 @@ type STATE = {
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
   allowedMoves: number[];
-  // board: string[];
-  // hash: string,
+  hash: number,
 }
 
 export type SearchInfo = {
@@ -53,6 +52,18 @@ const MAXVAL = 1000000
 const NEUTRAL = 77777
 export const DIM = {NCOL: 7, NROW: 6};
 
+const range84 = range(2 * DIM.NCOL * DIM.NROW)
+const rand8 = (): number => Math.floor((Math.random() * 255) + 1)
+const rand32 = (): number => rand8() << 23 | rand8() << 16 | rand8() << 8 | rand8();
+const depthKeys = range(42).map(() => rand32())
+const sideKeys = [rand32(), rand32()]
+const pieceKeys = range84.map(() => rand32())
+const HASH_PIECE = (state: STATE, sq: number) => {
+  const c = state.side === 1 ? 1 : 2
+  state.hash ^= pieceKeys[sq * c]
+  state.hash ^= sideKeys[c];
+}
+
 const computeWinningRows = (r: number, c: number, dr: number, dc: number): WinningRow[] => { // dr = delta row,  dc = delta col
   const row = [];
   const startRow = DIM.NROW - r;
@@ -74,8 +85,7 @@ export const winningRows: WinningRow[] = range(DIM.NROW).reduce((acc: any, r: nu
 ], acc), [])
 
 // list of indices on allWinningRows for each field of board
-export const winningRowsForFields = range(DIM.NCOL * DIM.NROW)
-  .map(i => winningRows.reduce((acc: number[], wr: WinningRow, j: number) => wr.row.includes(i) ? [...acc, j] : acc, []))
+export const winningRowsForFields = range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc: number[], wr: WinningRow, j: number) => wr.row.includes(i) ? [...acc, j] : acc, []))
 
 const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const cloneState = (s: STATE) => ({
@@ -84,12 +94,6 @@ const cloneState = (s: STATE) => ({
   winningRowsCounter: [...s.winningRowsCounter],
   // board: [...s.board],
 })
-// const RAND_8 = () => Math.floor((Math.random() * 255) + 1)
-// const RAND_32 = () => RAND_8() << 23 | RAND_8() << 16 | RAND_8() << 8 | RAND_8();
-// const sideKey = RAND_32();
-// const pieceKeys = range(2*DIM.NCOL * DIM.NROW).map(() => RAND_32());
-// const HASH_PCE = (state: STATE, sq: number) => state.hash ^= pieceKeys[sq];
-// const HASH_SIDE = (state: STATE) => state.hash ^= sideKey;
 
 const state: STATE = { // state that is used for evaluating
   cntMoves: 0,
@@ -99,8 +103,7 @@ const state: STATE = { // state that is used for evaluating
   isMill: false,
   cntActiveWinningRows: winningRows.length,
   allowedMoves: [3, 4, 2, 5, 1, 6, 0],
-  // board: range(DIM.NCOL * DIM.NROW).map(() => ' '),
-  // hash: ''
+  hash: 0,
 };
 
 const searchInfo: SearchInfo = {
@@ -114,7 +117,8 @@ const timeOut = () => Date.now() >= searchInfo.stopAt
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
-  winningRowsForFields[idxBoard].forEach(i => { // update state of winning rows attached to idxBoard
+  HASH_PIECE(state, idxBoard)
+  winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounter[i] === NEUTRAL) return;
     if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== state.side) {
       state.winningRowsCounter[i] = NEUTRAL; // to mark winning row as neutral
@@ -126,11 +130,7 @@ const doMove = (c: number, state: STATE) => {
   })
   state.cntMoves++;
   state.heightCols[c]++;
-  // state.board[idxBoard] = state.side === 1 ? 'B' : 'R'
-  // state.hash = state.board.join('')
   state.side = state.side === 1 ? -1 : 1;
-  // HASH_PCE(state, idxBoard)
-  // HASH_SIDE(state)
   return state;
 }
 
@@ -149,7 +149,8 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   return alpha;
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
-// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash + '-' + depth + '-' + maxDepth, cache(x => Math.abs(x) >= MAXVAL - 50));
+// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash ^ depthKeys[depth], cache(x => Math.abs(x) >= MAXVAL - 50));
+
 
 let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
@@ -183,6 +184,7 @@ export class ConnectFourModelService {
   isAllowedMove = (c: number): boolean => this.state.heightCols[c] < DIM.NROW
 
   searchBestMove = (maxThinkingDuration = 1000): SearchInfo => {
+
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
