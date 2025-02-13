@@ -2,12 +2,12 @@
 <div mat-dialog-content>
   <mat-form-field>
     <mat-label>Spielstärke</mat-label>
-    <mat-select [(value)]="gameSettings.maxDepth">
-      <mat-option [value]=6>Anfänger</mat-option>
-      <mat-option [value]=7>Amateur</mat-option>
-      <mat-option [value]=8>Fortgeschrittener</mat-option>
-      <mat-option [value]=9>Meister</mat-option>
-      <mat-option [value]=10>Großmeister</mat-option>
+    <mat-select [(value)]="gameSettings.maxThinkingTime">
+      <mat-option [value]=100>Anfänger</mat-option>
+      <mat-option [value]=200>Amateur</mat-option>
+      <mat-option [value]=500>Fortgeschrittener</mat-option>
+      <mat-option [value]=1000>Meister</mat-option>
+      <mat-option [value]=2500>Großmeister</mat-option>
     </mat-select>
   </mat-form-field>
   <br>

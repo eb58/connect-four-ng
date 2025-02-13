@@ -10,7 +10,6 @@ const range = (n: number) => [...Array(n).keys()]
 
 export type GameSettings = {
   beginner: Player,
-  maxDepth: number,     // skill level
   maxThinkingTime: number,
 }
 
@@ -21,7 +20,7 @@ export type GameSettings = {
 })
 export class GameBoardComponent {
   settings = localStorage.getItem('connect-4-settings') || 'false'
-  gameSettings: GameSettings = JSON.parse(this.settings) || {beginner: -1, maxDepth: 6};
+  gameSettings: GameSettings = JSON.parse(this.settings) || {beginner: -1, maxThinkingTime: 100};
   info = 'Bitte klicke in die Spalte, in die du einen Stein einwerfen möchtest.'
 
   NROW = range(DIM.NROW).reverse();
