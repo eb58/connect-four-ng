@@ -186,11 +186,11 @@ export class ConnectFourModelService {
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
-    let moves = generateMoves(this.state);
     for (let depth = 1; depth <= 100; depth++) {
-      let bestMoves: MoveType[] = []
+      const moves = generateMoves(this.state);
+      const bestMoves: MoveType[] = []
       for (let i = 0; i < moves.length; i++) {
-        const score = -negascout(doMove(moves[i], cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
+        const score = -negamax(doMove(moves[i], cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
         bestMoves.push({move: moves[i], score});
         if (score > MAXVAL - 50) {
           searchInfo.depth = depth
@@ -204,7 +204,6 @@ export class ConnectFourModelService {
       if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)              // all moves lead to disaster
         || bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
       ) break;
-      moves = bestMoves.map((m: MoveType) => m.move);
     }
     return searchInfo;
   }
