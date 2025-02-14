@@ -113,7 +113,8 @@ export class GameBoardComponent {
       .pipe(filter(res => res === 'ja'))
       .subscribe(() => {
         // this.initGame('blue|23323233202030002065565')
-        this.initGame('blue|5443421244553533332222')
+        // this.initGame('blue|5443421244553533332222')
+        this.initGame(' blue|433233022233221144444666')
       })
   }
 

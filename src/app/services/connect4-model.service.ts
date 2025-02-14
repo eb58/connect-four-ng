@@ -56,9 +56,10 @@ const range84 = range(2 * DIM.NCOL * DIM.NROW)
 const rand8 = (): number => Math.floor((Math.random() * 255) + 1)
 const rand32 = (): number => rand8() << 23 | rand8() << 16 | rand8() << 8 | rand8();
 const depthKeys = range(42).map(() => rand32())
+const maxDepthKeys = range(42).map(() => rand32())
 const sideKeys = [rand32(), rand32()]
 const pieceKeys = range84.map(() => rand32())
-const HASH_PIECE = (state: STATE, sq: number) => {
+const hashPiece = (state: STATE, sq: number) => {
   const c = state.side === 1 ? 1 : 2
   state.hash ^= pieceKeys[sq * c]
   state.hash ^= sideKeys[c];
@@ -117,7 +118,7 @@ const timeOut = () => Date.now() >= searchInfo.stopAt
 
 const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
-  HASH_PIECE(state, idxBoard)
+  hashPiece(state, idxBoard)
   winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounter[i] === NEUTRAL) return;
     if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== state.side) {
@@ -149,8 +150,7 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   return alpha;
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
-// negamax = memoize(negamax, (s: STATE, depth: number) => s.hash ^ depthKeys[depth], cache(x => Math.abs(x) >= MAXVAL - 50));
-
+negamax = memoize(negamax, (s: STATE, depth: number) => s.hash ^ depthKeys[depth], cache(x => Math.abs(x) >= MAXVAL - 50));
 
 let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
@@ -184,7 +184,6 @@ export class ConnectFourModelService {
   isAllowedMove = (c: number): boolean => this.state.heightCols[c] < DIM.NROW
 
   searchBestMove = (maxThinkingDuration = 1000): SearchInfo => {
-
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
@@ -197,13 +196,15 @@ export class ConnectFourModelService {
         if (score > MAXVAL - 50) {
           searchInfo.depth = depth
           searchInfo.bestMoves = bestMoves.sort(cmpByScore)
+          // console.log( `DEPTH:${depth}`, bestMoves.reduce((acc:string, m:MoveType)=>acc+ `${m.move}:${m.score} `,''))
           return searchInfo
         }
       }
       if (timeOut()) break;
       searchInfo.depth = depth
       searchInfo.bestMoves = bestMoves.sort(cmpByScore)
-      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)              // all moves lead to disaster
+      // console.log(`DEPTH:${depth}`, bestMoves.reduce((acc: string, m: MoveType) => acc + `${m.move}:${m.score} `, ''))
+      if (bestMoves.every((m: MoveType) => m.score < -MAXVAL + 50)                // all moves lead to disaster
         || bestMoves.filter((m: MoveType) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
       ) break;
     }
