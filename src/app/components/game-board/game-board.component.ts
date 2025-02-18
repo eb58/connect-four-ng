@@ -32,6 +32,10 @@ export class GameBoardComponent {
   thinking = false;
   hintStr = '';
 
+  // fen = 'blue|23323233202030002065565')
+  // fen = 'blue|5443421244553533332222')
+  fen = 'red|040323001'
+
   constructor(private readonly cf: ConnectFourModelService, public dialog: MatDialog) {
     this.init()
     if (this.gameSettings.beginner === 1) {
@@ -111,11 +115,7 @@ export class GameBoardComponent {
     this.info = ''
     this.openQuestionDialog('Wirklich neu starten?')
       .pipe(filter(res => res === 'ja'))
-      .subscribe(() => {
-        // this.initGame('blue|23323233202030002065565')
-        // this.initGame('blue|5443421244553533332222')
-        this.initGame(' blue|433233022233221144444666')
-      })
+      .subscribe(() => this.initGame(this.fen))
   }
 
   openSettings = () => this.openSettingsDialog(this.gameSettings)
@@ -146,7 +146,7 @@ export class GameBoardComponent {
       const sc = this.cf.searchBestMove(this.gameSettings.maxThinkingTime)
       this.thinking = false
       console.log(this.infoStr(sc))
-      this.hintStr = `Bester Zug - Spalte ${sc.bestMoves[0].move + 1}`
+      this.hintStr = `Bester Zug für dich - Spalte ${sc.bestMoves[0].move + 1}`
     }, 10)
   }
 }
