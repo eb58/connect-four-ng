@@ -183,11 +183,11 @@ export class ConnectFourModelService {
   doMove = (m: number): STATE => doMove(m, this.state);
   isAllowedMove = (c: number): boolean => this.state.heightCols[c] < DIM.NROW
 
-  searchBestMove = (maxThinkingDuration = 1000): SearchInfo => {
+  searchBestMove = (maxThinkingDuration = 1000, maxDepth = 40): SearchInfo => {
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
-    for (let depth = 1; depth <= 100; depth++) {
+    for (let depth = 1; depth <= maxDepth; depth++) {
       const moves = generateMoves(this.state);
       const bestMoves: MoveType[] = []
       for (let i = 0; i < moves.length; i++) {
