@@ -89,8 +89,8 @@ export class GameBoardComponent {
       const sc = this.cf.searchBestMove(this.gameSettings.maxThinkingTime)
       const bestMoves = sc.bestMoves
       this.thinking = false
-      console.log(this.infoStr(sc))
       this.doMove(bestMoves[0].move)
+      console.log(this.infoStr(sc))
       this.info = `Mein letzter Zug: Spalte ${bestMoves[0].move + 1}`
       if (this.isMill()) this.openInfoDialog('Bedaure, du hast verloren!');
       else if (this.isDraw()) this.openInfoDialog('Gratuliere, du hast ein Remis geschafft!');
@@ -137,7 +137,7 @@ export class GameBoardComponent {
 
   infoStr = (sc: SearchInfo): string => {
     const scores = sc.bestMoves.map(m => `${m.move + 1}:${m.score}`).join(' ')
-    return `DEPTH:${sc.depth} NODES:${sc.nodes} SCORES:${scores} BOARD:${(this.beginner) + '|' + this.moves.join('').trim()}`
+    return `DEPTH:${sc.depth} NODES:${sc.nodes} SCORES:${scores} BOARD:${(this.beginner === 1 ? 'blue' : 'red') + '|' + this.moves.join('').trim()}`
   }
 
   hint() {
