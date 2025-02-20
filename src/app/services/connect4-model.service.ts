@@ -121,7 +121,7 @@ const doMove = (c: number, state: STATE) => {
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) return;
     const cnt = state.side === 1 ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
     cnt[i]++
-    state.isMill = state.isMill || Math.abs(cnt[i]) >= 4
+    state.isMill ||= cnt[i] >= 4
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) state.cntActiveWinningRows--
   })
   state.cntMoves++;
