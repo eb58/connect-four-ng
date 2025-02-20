@@ -119,7 +119,7 @@ const doMove = (c: number, state: STATE) => {
   hashPiece(state, idxBoard)
   winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) return;
-    const cnt = state.side === -1 ? state.winningRowsCounterRed : state.winningRowsCounterBlue;
+    const cnt = state.side === 1 ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
     cnt[i]++
     state.isMill = state.isMill || Math.abs(cnt[i]) >= 4
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) state.cntActiveWinningRows--
