@@ -164,7 +164,7 @@ export class ConnectFourModelService {
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
-    for (let depth = 1; depth <= maxDepth; depth++) {
+    for (let depth = 2; depth <= maxDepth; depth += 2) {
       const moves = generateMoves(this.state);
       const bestMoves: MoveType[] = []
       for (let i = 0; i < moves.length; i++) {
