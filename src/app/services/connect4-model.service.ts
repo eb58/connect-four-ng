@@ -50,13 +50,11 @@ type WinningRow = {
 const MAXVAL = 1000000
 export const DIM = {NCOL: 7, NROW: 6};
 
-const range84 = range(2 * DIM.NCOL * DIM.NROW)
 const rand8 = (): number => Math.floor((Math.random() * 255) + 1)
 const rand32 = (): number => rand8() << 23 | rand8() << 16 | rand8() << 8 | rand8();
 const depthKeys = range(42).map(() => rand32())
-const maxDepthKeys = range(42).map(() => rand32())
 const sideKeys = [rand32(), rand32()]
-const pieceKeys = range84.map(() => rand32())
+const pieceKeys = range(2 * DIM.NCOL * DIM.NROW).map(() => rand32())
 const hashPiece = (state: STATE, sq: number) => {
   const c = state.side === 1 ? 1 : 2
   state.hash ^= pieceKeys[sq * c]
@@ -92,7 +90,6 @@ const cloneState = (s: STATE) => ({
   heightCols: [...s.heightCols],
   winningRowsCounterRed: [...s.winningRowsCounterRed],
   winningRowsCounterBlue: [...s.winningRowsCounterBlue],
-  // board: [...s.board],
 })
 
 const MOVES = [3, 4, 2, 5, 1, 6, 0];
