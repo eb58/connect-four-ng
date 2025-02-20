@@ -69,7 +69,7 @@ test('loosing 1', () => {
   const sc = cf.searchBestMove()
   const m = sc.bestMoves
   // console.log('loosing 1', sc)
-  expect(sc.depth).toBe(1)
+  expect(sc.depth).toBe(2)
   expect(m.every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
 });
 
@@ -79,7 +79,7 @@ test('loosing 2', () => {
   // _  _  _  C  _  _  _
   // C  _  _  H  H  H  _
   const sc = cf.searchBestMove()
-  expect(sc.depth).toBe(1)
+  expect(sc.depth).toBe(2)
   expect(sc.bestMoves.every(({score}) => score <= -cf.MAXVAL + 1)).toBeTruthy();
 });
 
@@ -92,7 +92,7 @@ test('loosing 3', () => {
   // C  C  C  H  H  _  _
   const sc = cf.searchBestMove()
   // console.log('loosing 3', sc)
-  expect(sc.depth).toBe(3)
+  expect(sc.depth).toBe(4)
   expect(sc.bestMoves.every(({score}) => score <= -cf.MAXVAL + 3)).toBeTruthy();
 });
 
@@ -104,7 +104,7 @@ test('eval 1', () => {
   // H  _  _  C  _  _  _
   const sc = cf.searchBestMove()
   // console.log('eval 1', sc)
-  expect(sc.depth).toBe(1)
+  expect(sc.depth).toBe(2)
   expect(sc.bestMoves[0].move).toBe(0);
   expect(sc.bestMoves.slice(1).every(({score}) => score <= -cf.MAXVAL + 1))
 });
@@ -118,7 +118,7 @@ test('eval 2', () => {
     // C  C  C  H  H  _  _
   const sc = cf.searchBestMove()
     // console.log('eval 2', sc)
-    expect(sc.depth).toBe(3)
+  expect(sc.depth).toBe(4)
     expect(sc.bestMoves[0].move).toBe(4);
   expect(sc.bestMoves.slice(6).every(({score}) => score <= -cf.MAXVAL + 3))
   }
@@ -136,58 +136,60 @@ test('eval 3', () => {
 });
 
 test('eval 4', () => {
+  initGame('red|304')
+  // _  _  _  _  _  _  _
+  // _  _  _  _  _  _  _
+  // C  _  _  H  H  _  _
+  const sc = cf.searchBestMove()
+  // console.log('eval 4', sc)
+  expect(sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
+  expect(sc.bestMoves.slice(5).every(({score}) => score === -cf.MAXVAL + 3))
+});
+
+test('eval 5 - bad moves', () => {
+  initGame('red|30303')
+  // _  _  _  H  _  _  _
+  // C  _  _  H  _  _  _
+  // C  _  _  H  _  _  _
+  const sc = cf.searchBestMove()
+  // console.log('eval 5', sc) // , dumpBoard(cf.state.board))
+  expect(sc.depth).toBe(2)
+  expect(sc.bestMoves.slice(1).every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
+});
+
+test('eval 6 - bad moves', () => {
+  initGame('red|30304')
+  // _  _  _  _  _  _  _
+  // C  _  _  H  _  _  _
+  // C  _  _  H  H  _  _
+  const sc = cf.searchBestMove()
+  // console.log('eval6', sc)
+  expect(sc.bestMoves[0].move === 0 || sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
+  expect(sc.bestMoves.slice(4).every(({score}) => score === -cf.MAXVAL + 3))
+});
+
+test('eval 7', () => {
   initGame('red|264')
   // _  _  _  _  _  _  _
   // _  _  C  _  _  _  _
   // _  _  H  _  H  _  _
   const sc = cf.searchBestMove()
   const m = sc.bestMoves
-  // console.log('eval 4', sc)
+  console.log('eval 7', sc)
+  expect(sc.depth).toBeGreaterThanOrEqual(10)
   expect(m[0].move === 1 || m[0].move === 3 || m[0].move === 5).toBeTruthy();
-  expect(sc.bestMoves.slice(4).every(({score}) => score <= -cf.MAXVAL + 3))
+  expect(sc.bestMoves.slice(3).every(({score}) => score <= -cf.MAXVAL + 3))
 });
 
-test('eval 5', () => {
-  initGame('red|304')
-  // _  _  _  _  _  _  _
-  // _  _  _  _  _  _  _
-  // C  _  _  H  H  _  _
-  const sc = cf.searchBestMove()
-  // console.log('eval 5', sc)
-  expect(sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
-  expect(sc.bestMoves.slice(5).every(({score}) => score === -cf.MAXVAL + 3))
-});
-
-test('eval 6', () => {
-  initGame('red|030')
+test('eval 8', () => {
+  initGame('red|')
   // _  _  _  _  _  _  _
   // H  _  _  _  _  _  _
   // H  _  _  C  _  _  _
   const sc = cf.searchBestMove()
-  // console.log('eval 6', sc)
-  expect(sc.bestMoves.some(({score}) => score > 0)).toBeTruthy();
-});
-
-test('eval 7 - bad moves', () => {
-  initGame('red|30303')
-  // _  _  _  H  _  _  _
-  // C  _  _  H  _  _  _
-  // C  _  _  H  _  _  _
-  const sc = cf.searchBestMove()
-  // console.log('eval 7', sc) // , dumpBoard(cf.state.board))
-  expect(sc.depth).toBe(1)
-  expect(sc.bestMoves.slice(1).every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
-});
-
-test('eval 8 - bad moves', () => {
-  initGame('red|30304')
-  // _  _  _  _  _  _  _
-  // C  _  _  H  _  _  _
-  // C  _  _  H  H  _  _
-  const sc = cf.searchBestMove()
-  // console.log('eval8', sc)
-  expect(sc.bestMoves[0].move === 0 || sc.bestMoves[0].move === 2 || sc.bestMoves[0].move === 5).toBeTruthy();
-  expect(sc.bestMoves.slice(4).every(({score}) => score === -cf.MAXVAL + 3))
+  console.log('eval 8', sc)
+  expect(sc.depth).toBeGreaterThanOrEqual(10)
+  expect(sc.bestMoves.every(({score}) => score > 0)).toBeTruthy();
 });
 
 test('winning 1', () => {
@@ -200,7 +202,7 @@ test('winning 1', () => {
   // H  C  C  H  C  C  C
   const sc = cf.searchBestMove()
   // console.log('winning 1', sc)
-  expect(sc.depth).toBe(1)
+  expect(sc.depth).toBe(2)
   expect(sc.bestMoves[0].move).toBe(5);
   expect(sc.bestMoves[0].score).toBe(cf.MAXVAL);
 });
@@ -213,7 +215,7 @@ test('winning 2', () => {
   // H  H  _  _  _  _  C
   const sc = cf.searchBestMove()
   // console.log('winning 2', sc)
-  expect(sc.depth).toBe(1)
+  expect(sc.depth).toBe(2)
   expect(sc.bestMoves[0].move).toBe(6);
   expect(sc.bestMoves[0].score).toBe(cf.MAXVAL);
   expect(sc.bestMoves.slice(2).every(({score}) => score === -cf.MAXVAL + 1)).toBeTruthy();
