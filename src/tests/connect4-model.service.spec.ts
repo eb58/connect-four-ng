@@ -175,7 +175,7 @@ test('eval 7', () => {
   // _  _  H  _  H  _  _
   const sc = cf.searchBestMove()
   const m = sc.bestMoves
-  console.log('eval 7', sc)
+  // console.log('eval 7', sc)
   expect(sc.depth).toBeGreaterThanOrEqual(10)
   expect(m[0].move === 1 || m[0].move === 3 || m[0].move === 5).toBeTruthy();
   expect(sc.bestMoves.slice(3).every(({score}) => score <= -cf.MAXVAL + 3))
@@ -187,7 +187,7 @@ test('eval 8', () => {
   // H  _  _  _  _  _  _
   // H  _  _  C  _  _  _
   const sc = cf.searchBestMove()
-  console.log('eval 8', sc)
+  // console.log('eval 8', sc)
   expect(sc.depth).toBeGreaterThanOrEqual(10)
   expect(sc.bestMoves.every(({score}) => score > 0)).toBeTruthy();
 });
