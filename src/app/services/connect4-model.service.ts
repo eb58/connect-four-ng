@@ -164,8 +164,8 @@ export class ConnectFourModelService {
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
+    const moves = generateMoves(this.state);
     for (let depth = 2; depth <= maxDepth; depth += 2) {
-      const moves = generateMoves(this.state);
       const bestMoves: MoveType[] = []
       for (let i = 0; i < moves.length; i++) {
         const score = -negamax(doMove(moves[i], cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
@@ -187,10 +187,4 @@ export class ConnectFourModelService {
     }
     return searchInfo;
   }
-
 }
-
-// just for debugging
-const f = (x: number) => x === 0 ? '_' : x < 0 ? 'R' : 'B'
-const reshape = (m: any, dim: number) => m.reduce((acc: any, x: any, i: number) => (i % dim ? acc[acc.length - 1].push(x) : acc.push([x])) && acc, []);
-export const dumpBoard = (board: number[]): string => '\n' + reshape(board.map(x => ` ${f(x)} `), 7).reverse().map((x: any) => x.join('')).join('\n')
