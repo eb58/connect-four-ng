@@ -25,7 +25,6 @@ type STATE = {
   side: Player;                 // who's turn is it 1 -> 'blue' -> AI player -1 -> 'red' -> human player
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
-  allowedMoves: number[];
   hash: number,
 }
 
@@ -96,6 +95,8 @@ const cloneState = (s: STATE) => ({
   // board: [...s.board],
 })
 
+const MOVES = [3, 4, 2, 5, 1, 6, 0];
+
 const state: STATE = { // state that is used for evaluating
   cntMoves: 0,
   heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
@@ -104,7 +105,6 @@ const state: STATE = { // state that is used for evaluating
   side: -1,
   isMill: false,
   cntActiveWinningRows: winningRows.length,
-  allowedMoves: [3, 4, 2, 5, 1, 6, 0],
   hash: 0,
 };
 
@@ -133,7 +133,7 @@ const doMove = (c: number, state: STATE) => {
   return state;
 }
 
-const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
+const generateMoves = (state: STATE): number[] => MOVES.filter(c => state.heightCols[c] < DIM.NROW);
 const computeScoreOfNode = (state: STATE) => state.side * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
