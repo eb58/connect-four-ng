@@ -1,7 +1,6 @@
 import {Injectable} from '@angular/core';
 
 const range = (n: number) => [...Array(n).keys()]
-const sign = (x: number) => x < 0 ? -1 : 1
 const feedX = (x: any, f: any) => f(x)
 
 const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
@@ -21,7 +20,8 @@ export type Player = -1 | 1
 type STATE = {
   cntMoves: number;
   heightCols: number[];         // height of columns
-  winningRowsCounter: number[]; // counter for every winning row  ( > 0 for AI; < 0 for human)
+  winningRowsCounterRed: number[]; // counter for every winning row for human
+  winningRowsCounterBlue: number[]; // counter for every winning row  for AI;
   side: Player;                 // who's turn is it 1 -> 'blue' -> AI player -1 -> 'red' -> human player
   isMill: boolean;              // we have four in a row!
   cntActiveWinningRows: number;
@@ -49,7 +49,6 @@ type WinningRow = {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const MAXVAL = 1000000
-const NEUTRAL = 77777
 export const DIM = {NCOL: 7, NROW: 6};
 
 const range84 = range(2 * DIM.NCOL * DIM.NROW)
@@ -92,14 +91,16 @@ const cmpByScore = (a: MoveType, b: MoveType) => b.score - a.score
 const cloneState = (s: STATE) => ({
   ...s,
   heightCols: [...s.heightCols],
-  winningRowsCounter: [...s.winningRowsCounter],
+  winningRowsCounterRed: [...s.winningRowsCounterRed],
+  winningRowsCounterBlue: [...s.winningRowsCounterBlue],
   // board: [...s.board],
 })
 
 const state: STATE = { // state that is used for evaluating
   cntMoves: 0,
   heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
-  winningRowsCounter: winningRows.map(() => 0),
+  winningRowsCounterRed: winningRows.map(() => 0),
+  winningRowsCounterBlue: winningRows.map(() => 0),
   side: -1,
   isMill: false,
   cntActiveWinningRows: winningRows.length,
@@ -120,14 +121,11 @@ const doMove = (c: number, state: STATE) => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
   hashPiece(state, idxBoard)
   winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
-    if (state.winningRowsCounter[i] === NEUTRAL) return;
-    if (state.winningRowsCounter[i] != 0 && sign(state.winningRowsCounter[i]) !== state.side) {
-      state.winningRowsCounter[i] = NEUTRAL; // to mark winning row as neutral
-      state.cntActiveWinningRows--
-    } else {
-      state.winningRowsCounter[i] += state.side;
-      state.isMill = state.isMill || Math.abs(state.winningRowsCounter[i]) >= 4
-    }
+    if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) return;
+    const cnt = state.side === -1 ? state.winningRowsCounterRed : state.winningRowsCounterBlue;
+    cnt[i]++
+    state.isMill = state.isMill || Math.abs(cnt[i]) >= 4
+    if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) state.cntActiveWinningRows--
   })
   state.cntMoves++;
   state.heightCols[c]++;
@@ -136,7 +134,7 @@ const doMove = (c: number, state: STATE) => {
 }
 
 const generateMoves = (state: STATE): number[] => state.allowedMoves = state.allowedMoves.filter(c => state.heightCols[c] < DIM.NROW);
-const computeScoreOfNode = (state: STATE) => state.side * state.winningRowsCounter.reduce((res, cnt, idc) => res + (cnt === NEUTRAL ? 0 : cnt * winningRows[idc].val), 0)
+const computeScoreOfNode = (state: STATE) => state.side * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
@@ -151,24 +149,6 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
 negamax = memoize(negamax, (s: STATE, depth: number) => s.hash ^ depthKeys[depth], cache(x => Math.abs(x) >= MAXVAL - 50));
-
-let negascout = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
-  if (state.isMill) return -MAXVAL + depth
-  if (state.cntActiveWinningRows <= 0) return 0
-  if (depth === maxDepth) return computeScoreOfNode(state);
-  let [lo, hi] = [alpha, beta];
-  const moves = generateMoves(state)
-  for (let j = 0; j < moves.length; j++) {
-    let t = -negascout(doMove(moves[j], cloneState(state)), depth + 1, maxDepth, -hi, -lo)
-    if (lo < t && t < beta && j > 0 && depth < maxDepth - 1)
-      t = -negascout(doMove(moves[j], cloneState(state)), depth + 1, maxDepth, -beta, -t)
-    if (t > lo) lo = t
-    if (lo >= beta) return lo
-    hi = lo + 1
-  }
-  return lo;
-}
-negascout = decorator(negascout, () => (++searchInfo.nodes & 4095) && !timeOut())
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
