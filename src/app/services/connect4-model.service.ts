@@ -1,15 +1,16 @@
 import {Injectable} from '@angular/core';
 
 const range = (n: number) => [...Array(n).keys()]
-const feedX = (x: any, f: any) => f(x)
 
 const cache = (insertCondition = (_: any) => true, c: any = {}) => ({
   add: (key: any, val: any) => (insertCondition(val) && (c[key] = val), val),
   get: (key: any) => c[key]
 })
-const memoize = (f: any, hash: any, c = cache()) =>
-  (...args: any[]) =>
-    feedX(hash(...args), (h: number) => c.get(h) !== undefined ? c.get(h) : c.add(h, f(...args)))
+const memoize = (f: any, hash: any, c = cache()) => (...args: any[]) => {
+  const h = hash(...args);
+  const val = c.get(h);
+  return val !== undefined ? val : c.add(h, f(...args))
+}
 
 const decorator = (f: any, decorator: any) => (...args: any[]) => decorator() ? f(...args) : 0;
 
@@ -18,7 +19,6 @@ const decorator = (f: any, decorator: any) => (...args: any[]) => decorator() ? 
 export type Player = -1 | 1
 
 type STATE = {
-  cntMoves: number;
   heightCols: number[];         // height of columns
   winningRowsCounterRed: number[]; // counter for every winning row for human
   winningRowsCounterBlue: number[]; // counter for every winning row  for AI;
@@ -52,7 +52,7 @@ export const DIM = {NCOL: 7, NROW: 6};
 
 const rand8 = (): number => Math.floor((Math.random() * 255) + 1)
 const rand32 = (): number => rand8() << 23 | rand8() << 16 | rand8() << 8 | rand8();
-const depthKeys = range(42).map(() => rand32())
+const depthKeys = range(DIM.NCOL * DIM.NROW).map(() => rand32())
 const sideKeys = [rand32(), rand32()]
 const pieceKeys = range(2 * DIM.NCOL * DIM.NROW).map(() => rand32())
 const hashPiece = (state: STATE, sq: number) => {
@@ -95,7 +95,6 @@ const cloneState = (s: STATE) => ({
 const MOVES = [3, 4, 2, 5, 1, 6, 0];
 
 const state: STATE = { // state that is used for evaluating
-  cntMoves: 0,
   heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
   winningRowsCounterRed: winningRows.map(() => 0),
   winningRowsCounterBlue: winningRows.map(() => 0),
@@ -124,7 +123,6 @@ const doMove = (c: number, state: STATE) => {
     state.isMill ||= cnt[i] >= 4
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) state.cntActiveWinningRows--
   })
-  state.cntMoves++;
   state.heightCols[c]++;
   state.side = state.side === 1 ? -1 : 1;
   return state;
@@ -137,15 +135,15 @@ let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, bet
   if (state.isMill) return -MAXVAL + depth
   if (state.cntActiveWinningRows <= 0) return 0
   if (depth === maxDepth) return computeScoreOfNode(state);
-  for (const m of generateMoves(state)) {
+  for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
     if (score > alpha) alpha = score;
     if (alpha >= beta) return alpha;
   }
   return alpha;
 }
-negamax = decorator(negamax, () => (++searchInfo.nodes & 4095) && !timeOut())
-negamax = memoize(negamax, (s: STATE, depth: number) => s.hash ^ depthKeys[depth], cache(x => Math.abs(x) >= MAXVAL - 50));
+negamax = decorator(negamax, () => (++searchInfo.nodes & 8191) && !timeOut())
+negamax = memoize(negamax, (s: STATE, depth: number) => s.hash ^ depthKeys[depth], cache(x => x >= MAXVAL - 50 || x <= -MAXVAL + 50));
 
 @Injectable({providedIn: 'root'})
 export class ConnectFourModelService {
