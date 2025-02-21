@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "ng-four-wins": {
+    "ng-connect-four": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/ng-four-wins",
+            "outputPath": "dist/ng-connect-four",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": [
@@ -61,10 +61,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "ng-four-wins:build:production"
+              "buildTarget": "ng-connect-four:build:production"
             },
             "development": {
-              "buildTarget": "ng-four-wins:build:development"
+              "buildTarget": "ng-connect-four:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -72,7 +72,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "ng-four-wins:build"
+            "buildTarget": "ng-connect-four:build"
           }
         },
         "test": {
