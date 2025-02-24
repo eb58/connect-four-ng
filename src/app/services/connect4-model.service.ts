@@ -115,11 +115,11 @@ const timeOut = () => Date.now() >= searchInfo.stopAt
 const doMove = (c: number, state: STATE): STATE => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
   hashPiece(state, idxBoard)
+  const counters = state.side === 1 ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
   winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) return;
-    const cnt = state.side === 1 ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
-    cnt[i]++
-    state.isMill ||= cnt[i] >= 4
+    counters[i]++
+    state.isMill ||= counters[i] >= 4
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) state.cntActiveWinningRows--
   })
   state.heightCols[c]++;
