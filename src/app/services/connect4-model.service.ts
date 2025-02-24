@@ -112,7 +112,7 @@ const searchInfo: SearchInfo = {
 
 const timeOut = () => Date.now() >= searchInfo.stopAt
 
-const doMove = (c: number, state: STATE) => {
+const doMove = (c: number, state: STATE): STATE => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
   hashPiece(state, idxBoard)
   winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
