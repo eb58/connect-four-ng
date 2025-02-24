@@ -24,7 +24,6 @@ type STATE = {
   winningRowsCounterBlue: number[]; // counter for every winning row  for AI;
   side: Player;                 // who's turn is it 1 -> 'blue' -> AI player -1 -> 'red' -> human player
   isMill: boolean;              // we have four in a row!
-  cntActiveWinningRows: number;
   hash: number,
 }
 
@@ -120,7 +119,6 @@ const doMove = (c: number, state: STATE): STATE => {
     if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) return;
     counters[i]++
     state.isMill ||= counters[i] >= 4
-    if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) state.cntActiveWinningRows--
   })
   state.heightCols[c]++;
   state.side = state.side === 1 ? -1 : 1;
@@ -131,7 +129,7 @@ const computeScoreOfNode = (state: STATE) => state.side * winningRows.reduce((re
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
-  if (state.cntActiveWinningRows <= 0) return 0
+  if (MOVES.every(m => state.heightCols[m] >= DIM.NROW)) return 0
   if (depth === maxDepth) return computeScoreOfNode(state);
   for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
     const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
