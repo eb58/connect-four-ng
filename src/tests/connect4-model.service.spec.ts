@@ -321,9 +321,19 @@ test('winning 11 - depth 12', () => {
 
 test('winning 12 - depth 14', () => {
   initGame('blue|4332330222332211')
-  const sc = cf.searchBestMove()
+  const sc = cf.searchBestMove(3000, 14)
   // console.log('winning 12', sc)
   expect(sc.depth).toBe(14)
   expect(sc.bestMoves[0].move).toBe(4);
   expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 14);
 })
+
+test('winning 13 - depth 16', () => {
+  initGame('blue|333231331011041100')
+  const sc = cf.searchBestMove()
+  // console.log('winning 13', sc)
+  expect(sc.depth).toBe(16)
+  expect(sc.bestMoves[0].move).toBe(4);
+  expect(sc.bestMoves[0].score).toBe(cf.MAXVAL - 16);
+})
+
