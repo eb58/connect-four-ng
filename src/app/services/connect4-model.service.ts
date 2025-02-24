@@ -128,7 +128,6 @@ const doMove = (c: number, state: STATE) => {
   return state;
 }
 
-const generateMoves = (state: STATE): number[] => MOVES.filter(c => state.heightCols[c] < DIM.NROW);
 const computeScoreOfNode = (state: STATE) => state.side * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
@@ -162,7 +161,7 @@ export class ConnectFourModelService {
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
-    const moves = generateMoves(this.state);
+    const moves = MOVES.filter(c => this.state.heightCols[c] < DIM.NROW);
     for (let depth = 2; depth <= maxDepth; depth += 2) {
       const bestMoves: MoveType[] = []
       for (let i = 0; i < moves.length; i++) {
