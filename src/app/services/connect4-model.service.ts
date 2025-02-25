@@ -16,13 +16,13 @@ const decorator = (f: any, decorator: any) => (...args: any[]) => decorator() ? 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export type Player = -1 | 1
+export enum Player { blue, red } // AI / human player
 
 type STATE = {
   heightCols: number[];         // height of columns
   winningRowsCounterRed: number[]; // counter for every winning row for human
   winningRowsCounterBlue: number[]; // counter for every winning row  for AI;
-  side: Player;                 // who's turn is it 1 -> 'blue' -> AI player -1 -> 'red' -> human player
+  side: Player;                 // who's turn is it?  blue -> AI player; red -> human player
   isMill: boolean;              // we have four in a row!
   hash: number,
 }
@@ -92,13 +92,15 @@ const cloneState = (s: STATE) => ({
 
 const MOVES = [3, 4, 2, 5, 1, 6, 0];
 
+// const winningRowsCounterRed = winningRows.map(() => 0)
+// const winningRowsCounterBlue = winningRows.map(() => 0)
+
 const state: STATE = { // state that is used for evaluating
   heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
   winningRowsCounterRed: winningRows.map(() => 0),
   winningRowsCounterBlue: winningRows.map(() => 0),
-  side: -1,
+  side: Player.blue,
   isMill: false,
-  cntActiveWinningRows: winningRows.length,
   hash: 0,
 };
 
@@ -115,24 +117,29 @@ const doMove = (c: number, state: STATE): STATE => {
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
   hashPiece(state, idxBoard)
   const counters = state.side === 1 ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
-  winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
-    if (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0) return;
-    counters[i]++
-    state.isMill ||= counters[i] >= 4
-  })
+  winningRowsForFields[idxBoard].forEach(i => counters[i]++)
+  state.isMill = winningRowsForFields[idxBoard].some(i => counters[i] >= 4)
   state.heightCols[c]++;
-  state.side = state.side === 1 ? -1 : 1;
+  state.side = state.side === Player.red ? Player.blue : Player.red;
   return state;
 }
-
-const computeScoreOfNode = (state: STATE) => state.side * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
+const undoMove = (c: number, newState: STATE, oldState: STATE) => {
+  // const idxBoard = c + DIM.NCOL * state.heightCols[c]
+  // const counters = state.side === -1 ? winningRowsCounterBlue : winningRowsCounterRed;
+  // winningRowsForFields[idxBoard].forEach((i: number) => { // update state of winning rows attached to idxBoard
+  //   counters[i]--
+  // })
+}
+const computeScoreOfNode = (state: STATE) => ((state.side === Player.blue) ? -1 : 1) * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
 
 let negamax = (state: STATE, depth: number, maxDepth: number, alpha: number, beta: number): number => {
   if (state.isMill) return -MAXVAL + depth
   if (MOVES.every(m => state.heightCols[m] >= DIM.NROW)) return 0
   if (depth === maxDepth) return computeScoreOfNode(state);
   for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
-    const score = -negamax(doMove(m, cloneState(state)), depth + 1, maxDepth, -beta, -alpha)
+    const newState = doMove(m, cloneState(state))
+    const score = -negamax(newState, depth + 1, maxDepth, -beta, -alpha)
+    undoMove(m, newState, state)
     if (score > alpha) alpha = score;
     if (alpha >= beta) return alpha;
   }
