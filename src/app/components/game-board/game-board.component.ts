@@ -51,7 +51,7 @@ export class GameBoardComponent {
   }
 
   isMill = (): boolean => this.cf.state.isMill
-  isDraw = (): boolean => this.cf.state.heightCols.every(c => c >= DIM.NROW) && !this.cf.state.isMill
+  isDraw = (): boolean => this.cf.state.heightCols.every((c: number) => c >= DIM.NROW) && !this.cf.state.isMill
   doMove = (m: number) => {
     this.board[m + DIM.NCOL * (this.cf.state.heightCols[m])] = this.cf.state.side === Player.blue ? 'blue' : 'red';
     this.moves.push(m);
