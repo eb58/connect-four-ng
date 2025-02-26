@@ -113,7 +113,7 @@ let negamax = (state, depth, maxDepth, alpha, beta) => {
 negamax = decorator(negamax, () => (++searchInfo.nodes & 8191) && !timeOut())
 negamax = memoize(negamax, (s, depth) => s.hash ^ depthKeys[depth], cache(x => x >= MAXVAL - 50 || x <= -MAXVAL + 50));
 
-export class Connect {
+export class ConnectFourEngine {
     MAXVAL = MAXVAL;
 
     constructor() {

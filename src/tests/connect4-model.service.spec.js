@@ -1,12 +1,15 @@
 // @ts-ignore
-import {Connect, DIM, Player,
+import {
+  ConnectFourEngine,
+  DIM,
+  Player,
   winningRows,
   winningRowsForFields
-} from '../app/services/connect.js';
+} from '../app/services/connect-four-engine.js';
 
 const range = (n) => [...Array(n).keys()]
 
-let cf = new Connect()
+let cf = new ConnectFourEngine()
 
 const initGame = (game) => {
   const x = game.split('|')

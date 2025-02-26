@@ -2,7 +2,7 @@ import {Component} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {filter, Observable} from 'rxjs';
 // @ts-ignore
-import {Connect, DIM, Player} from '../../services/connect.js';
+import {ConnectFourEngine, DIM, Player} from '../../services/connect-four-engine.js';
 import {InfoDialog} from '../info-dialog/info-dialog.component';
 import {QuestionDialog} from '../question-dialog/question-dialog.component';
 import {SettingsDialog} from '../settings-dialog/settings-dialog.component';
@@ -20,7 +20,7 @@ export type GameSettings = {
   styleUrls: ['./game-board.component.css']
 })
 export class GameBoardComponent {
-  cf = new Connect();
+  cf = new ConnectFourEngine();
   settings = localStorage.getItem('connect-4-settings') || 'false'
   gameSettings: GameSettings = JSON.parse(this.settings) || {beginner: Player.red, maxThinkingTime: 100};
   info = 'Bitte klicke in die Spalte, in die du einen Stein einwerfen möchtest.'
@@ -51,7 +51,7 @@ export class GameBoardComponent {
   }
 
   isMill = (): boolean => this.cf.state.isMill
-  isDraw = (): boolean => this.cf.state.heightCols.every(c => c >= DIM.NROW) && !this.cf.state.isMill
+  isDraw = (): boolean => this.cf.state.heightCols.every((c: number) => c >= DIM.NROW) && !this.cf.state.isMill
   doMove = (m: number) => {
     this.board[m + DIM.NCOL * (this.cf.state.heightCols[m])] = this.cf.state.side === Player.blue ? 'blue' : 'red';
     this.moves.push(m);
