@@ -1,5 +1,8 @@
 // @ts-ignore
-import {Connect, DIM, Player, winningRows, winningRowsForFields} from '../app/services/connect.js';
+import {Connect, DIM, Player,
+  winningRows,
+  winningRowsForFields
+} from '../app/services/connect.js';
 
 const range = (n) => [...Array(n).keys()]
 
@@ -180,7 +183,7 @@ test('eval 7', () => {
 test('eval 8', () => {
   initGame('blue|')
   const sc = cf.searchBestMove()
-  // console.log('eval 8', sc)
+  console.log('eval 8', sc)
   expect(sc.depth).toBeGreaterThanOrEqual(10)
   expect(sc.bestMoves.every((m) => m.score > 0)).toBeTruthy();
 });
