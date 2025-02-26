@@ -1,8 +1,11 @@
 const range = n => [...Array(n).keys()]
 const cache = (insertCondition = _ => true, c = {}) => ({
-  add: (key, val) => (insertCondition(val) && (c[key] = val), val), get: (key) => c[key]
+  add: (key, val) => (insertCondition(val) && (c[key] = val), val),
+  get: (key) => c[key],
+  clear: () => c = {}
 })
-const memoize = (f, hash, c = cache()) => (...args) => {
+const CACHE = cache();
+const memoize = (f, hash, c = CACHE) => (...args) => {
   const h = hash(...args);
   const val = c.get(h);
   return val !== undefined ? val : c.add(h, f(...args))
@@ -117,6 +120,7 @@ export class ConnectFourEngine {
   doMove = m => doMove(m, this.state);
 
   searchBestMove = (maxThinkingDuration = 1000, maxDepth = 40) => {
+    CACHE.clear()
     searchInfo.nodes = 0
     searchInfo.stopAt = Date.now() + maxThinkingDuration;
 
