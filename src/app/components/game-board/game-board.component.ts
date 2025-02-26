@@ -68,10 +68,16 @@ export class GameBoardComponent {
   }).afterClosed()
   openSettingsDialog = (gameSettings: GameSettings): Observable<GameSettings> => this.dialog.open(SettingsDialog, {data: gameSettings}).afterClosed()
 
-  onClick = (c: number) => {
+  onClick = (c: number): void => {
     if (this.thinking) return
-    if (this.isMill()) this.info = 'Das Spiel ist zuende. Glückwunsch, du hast gewonnen.'
-    else if (this.isDraw()) this.info = 'Das Spiel ist unentschieden ausgegangen.'
+    if (this.isMill()) {
+      this.openInfoDialog('Das Spiel ist zuende.');
+      return
+    }
+    if (this.isDraw()) {
+      this.openInfoDialog('Das Spiel ist unentschieden ausgegangen.');
+      return
+    }
 
     this.info = `Dein letzter Zug: Spalte ${c + 1}`
     if (!this.cf.isAllowedMove(c)) return;
