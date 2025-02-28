@@ -7,7 +7,7 @@ const cache = (insertCondition = _ => true, c = {}) => ({
   get: key => c[key],
   clear: () => c = {}
 })
-const CACHE = cache();
+const CACHE = cache(x => x >= MAXVAL - 50 || x <= -MAXVAL + 50);
 const memoize = (f, hash, c = CACHE) => (...args) => {
   const h = hash(...args);
   const val = c.get(h);
@@ -27,7 +27,6 @@ export const MAXVAL = 1000000
 // const pieceKeys = range(84).map(() => rand32())
 // const depthKeys = range(42).map(() => rand32())
 const sideKeys = [127938607, 1048855538]
-const depthKeys = [2012132760, 1376825350, 1541527030, 2075000490, 1174249057, 1779257161, 1640788463, 1214077343, 704075087, 2021904463, 415505373, 579276056, 829253023, 1239592681, 1713094398, 1808160198, 1825914667, 1608185404, 1353190506, 1547529551, 1577172802, 1221714693, 1923161146, 606324792, 947985324, 787103526, 25555663, 1435339853, 718656395, 766360775, 111898524, 1958194192, 1611929969, 1107139413, 515629452, 1037843955, 2039596067, 341097983, 669420696, 886037943, 1150456883, 777463981]
 const pieceKeys = [227019481, 1754434862, 629481213, 887205851, 529032562, 2067323277, 1070040335, 567190488, 468610655, 1669182959, 236891527, 1211317841, 849223426, 1031915473, 315781957, 1594703270, 114113554, 966088184, 2114417493, 340442843, 410051610, 1895709998, 502837645, 2046296443, 1720231708, 1437032187, 80592865, 1757570123, 2063094472, 1123905671, 901800952, 1894943568, 732390329, 401463737, 2055893758, 1688751506, 115630249, 391883254, 249795256, 1341740832, 807352454, 2122692086, 851678180, 1154773536, 64453931, 311845715, 1173309830, 1855940732, 1662371745, 998042207, 2121332908, 1905657426, 873276463, 1048910740, 1181863470, 136324833, 881754029, 1037297764, 1385633069, 2037058967, 398045724, 1522858950, 1892619084, 1364648567, 771375215, 983991136, 260316522, 648466817, 1502780386, 1733680598, 401803338, 2136229086, 718267066, 485772484, 1936892066, 1051148609, 1018878751, 1721684837, 1720651398, 2073094346, 526823540, 1170625524, 465996760, 1587572180]
 const hashPiece = (state, sq) => state.hash ^= pieceKeys[sq * (state.side === 1 ? 1 : 2)] ^ sideKeys[state.side === 1 ? 1 : 2];
 
@@ -100,14 +99,14 @@ let negamax = (state, depth, maxDepth, alpha, beta) => {
   for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
     const newState = doMove(m, cloneState(state))
     const score = -negamax(newState, depth + 1, maxDepth, -beta, -alpha)
-    undoMove(m, newState, state)
+    // undoMove(m, newState, state)
     if (score > alpha) alpha = score;
     if (alpha >= beta) return alpha;
   }
   return alpha;
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 8191) && !timeOut())
-negamax = memoize(negamax, (s, depth) => s.hash ^ depthKeys[depth], cache(x => x >= MAXVAL - 50 || x <= -MAXVAL + 50));
+negamax = memoize(negamax, (s) => s.hash, CACHE);
 
 export class ConnectFourEngine {
   state;  // state that is used for evaluating
