@@ -39,7 +39,7 @@ const computeWinningRows = (r, c, dr, dc) => { // dr = delta row,  dc = delta co
     c += dc;
     r += dr;
   }
-  return row.length < 4 ? [] : [{row, val: (dc === 0) ? 1 : (dr === 0 ? 8 * startRow : 4 * startRow)}];
+  return row.length < 4 ? [] : [{row, val: (dc === 0) ? 1 : (dr !== 0 ? 4 : 8) * startRow}];
 }
 
 // winning rows - length should be 69 for DIM (7x6)
