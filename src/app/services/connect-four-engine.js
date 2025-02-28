@@ -1,7 +1,10 @@
 const range = n => [...Array(n).keys()]
 const cache = (insertCondition = _ => true, c = {}) => ({
-  add: (key, val) => (insertCondition(val) && (c[key] = val), val),
-  get: (key) => c[key],
+  add: (key, val) => {
+    insertCondition(val) && (c[key] = val);
+    return val
+  },
+  get: key => c[key],
   clear: () => c = {}
 })
 const CACHE = cache();
@@ -16,8 +19,7 @@ const decorator = (f, decorator) => (...args) => decorator() ? f(...args) : 0;
 
 export const Player = {blue: 0, red: 1} // AI / human player
 export const DIM = {NCOL: 7, NROW: 6};
-
-const MAXVAL = 1000000
+export const MAXVAL = 1000000
 
 // const rand8 = () => Math.floor((Math.random() * 255) + 1)
 // const rand32 = () => rand8() << 23 | rand8() << 16 | rand8() << 8 | rand8();
@@ -82,14 +84,14 @@ const doMove = (c, state) => {
   return state;
 }
 
-const undoMove = (c, newState, oldState) => {
-  // const idxBoard = c + DIM.NCOL * state.heightCols[c]
-  // const counters = state.side === -1 ? winningRowsCounterBlue : winningRowsCounterRed;
-  // winningRowsForFields[idxBoard].forEach((i) => { // update state of winning rows attached to idxBoard
-  //   counters[i]--
-  // })
-}
-const computeScoreOfNode = (state) => ((state.side === Player.blue) ? -1 : 1) * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
+// const undoMove = (c, newState, oldState) => {
+// const idxBoard = c + DIM.NCOL * state.heightCols[c]
+// const counters = state.side === -1 ? winningRowsCounterBlue : winningRowsCounterRed;
+// winningRowsForFields[idxBoard].forEach((i) => { // update state of winning rows attached to idxBoard
+//   counters[i]--
+// })
+// }
+const computeScoreOfNode = (state) => (state.side === Player.blue ? -1 : 1) * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
 
 let negamax = (state, depth, maxDepth, alpha, beta) => {
   if (state.isMill) return -MAXVAL + depth
@@ -108,7 +110,6 @@ negamax = decorator(negamax, () => (++searchInfo.nodes & 8191) && !timeOut())
 negamax = memoize(negamax, (s, depth) => s.hash ^ depthKeys[depth], cache(x => x >= MAXVAL - 50 || x <= -MAXVAL + 50));
 
 export class ConnectFourEngine {
-  MAXVAL = MAXVAL;
   state;  // state that is used for evaluating
 
   constructor() {
