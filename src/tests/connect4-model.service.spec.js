@@ -119,7 +119,7 @@ test('eval 2 - bad moves', () => {
     // C  _  H  H  _  _  _
     // C  C  C  H  H  _  _
   const sc = cf.searchBestMove()
-  console.log('eval 2', sc)
+  // console.log('eval 2', sc)
   expect(sc.depth).toBe(4)
     expect(sc.bestMoves[0].move).toBe(4);
   expect(sc.bestMoves.slice(6).every((m) => m.score <= -MAXVAL + 3))
@@ -198,7 +198,7 @@ test('eval 8 - bad moves', () => {
   expect(sc.bestMoves.slice(5).every((m) => m.score <= -MAXVAL + 3)).toBeTruthy()
 });
 
-test('eval 8', () => {
+test('eval 9', () => {
   initGame('blue|')
   const sc = cf.searchBestMove()
   // console.log('eval 9', sc)

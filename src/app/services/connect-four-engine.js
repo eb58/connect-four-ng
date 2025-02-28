@@ -1,7 +1,7 @@
 const range = n => [...Array(n).keys()]
 const cache = (insertCondition = _ => true, c = {}) => ({
   add: (key, val) => {
-    insertCondition(val) && (c[key] = val);
+    if (insertCondition(val)) c[key] = val;
     return val
   },
   get: key => c[key],
@@ -106,7 +106,7 @@ let negamax = (state, depth, maxDepth, alpha, beta) => {
   return alpha;
 }
 negamax = decorator(negamax, () => (++searchInfo.nodes & 8191) && !timeOut())
-negamax = memoize(negamax, (s) => s.hash, CACHE);
+negamax = memoize(negamax, s => s.hash);
 
 export class ConnectFourEngine {
   state;  // state that is used for evaluating
