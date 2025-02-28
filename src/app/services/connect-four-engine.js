@@ -48,9 +48,9 @@ export const winningRows = range(DIM.NROW).reduce((acc, r) => range(DIM.NCOL).re
 export const winningRowsForFields = range(DIM.NCOL * DIM.NROW).map(i => winningRows.reduce((acc, wr, j) => wr.row.includes(i) ? [...acc, j] : acc, []))
 
 const cmpByScore = (a, b) => b.score - a.score
+
 const cloneState = (s) => ({
   ...s,
-  heightCols: [...s.heightCols],
   winningRowsCounterRed: [...s.winningRowsCounterRed],
   winningRowsCounterBlue: [...s.winningRowsCounterBlue],
 })
@@ -58,7 +58,7 @@ const cloneState = (s) => ({
 const MOVES = [3, 4, 2, 5, 1, 6, 0];
 
 const STATE = {
-  heightCols: range(DIM.NCOL).map(() => 0), // height of columns = [0, 0, 0, ..., 0];
+  heightCols: range(DIM.NCOL).map(() => 0),
   winningRowsCounterRed: winningRows.map(() => 0),
   winningRowsCounterBlue: winningRows.map(() => 0),
   side: Player.blue,
@@ -83,13 +83,14 @@ const doMove = (c, state) => {
   return state;
 }
 
-// const undoMove = (c, newState, oldState) => {
+const undoMove = (c, state) => {
 // const idxBoard = c + DIM.NCOL * state.heightCols[c]
+  --state.heightCols[c];
 // const counters = state.side === -1 ? winningRowsCounterBlue : winningRowsCounterRed;
 // winningRowsForFields[idxBoard].forEach((i) => { // update state of winning rows attached to idxBoard
 //   counters[i]--
 // })
-// }
+}
 const computeScoreOfNode = (state) => (state.side === Player.blue ? -1 : 1) * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
 
 let negamax = (state, depth, maxDepth, alpha, beta) => {
@@ -99,7 +100,7 @@ let negamax = (state, depth, maxDepth, alpha, beta) => {
   for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
     const newState = doMove(m, cloneState(state))
     const score = -negamax(newState, depth + 1, maxDepth, -beta, -alpha)
-    // undoMove(m, newState, state)
+    undoMove(m, newState)
     if (score > alpha) alpha = score;
     if (alpha >= beta) return alpha;
   }
@@ -115,7 +116,14 @@ export class ConnectFourEngine {
     this.init()
   }
 
-  init = () => this.state = cloneState(STATE);
+  init = () => {
+    this.state = {
+      ...STATE,
+      heightCols: [...STATE.heightCols],
+      winningRowsCounterRed: [...STATE.winningRowsCounterRed],
+      winningRowsCounterBlue: [...STATE.winningRowsCounterBlue],
+    }
+  }
   isAllowedMove = (c) => this.state.heightCols[c] < DIM.NROW
   doMove = m => doMove(m, this.state);
 
@@ -128,7 +136,9 @@ export class ConnectFourEngine {
     for (let depth = 2; depth <= maxDepth; depth += 2) {
       const bestMoves = []
       for (let i = 0; i < moves.length; i++) {
-        const score = -negamax(doMove(moves[i], cloneState(this.state)), 0, depth, -MAXVAL, +MAXVAL)
+        const newState = doMove(moves[i], cloneState(this.state))
+        const score = -negamax(newState, 0, depth, -MAXVAL, +MAXVAL)
+        undoMove(moves[i], newState)
         bestMoves.push({move: moves[i], score});
         if (score > MAXVAL - 50) {
           searchInfo.depth = depth
