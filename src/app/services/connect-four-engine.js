@@ -70,8 +70,7 @@ const doMove = (c, state) => {
   state.heightCols[c]++;
   state.side = state.side === Player.red ? Player.blue : Player.red;
   const counters = state.side === Player.blue ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
-  winningRowsForFields[idxBoard].forEach(i => counters[i]++)
-  state.isMill = winningRowsForFields[idxBoard].some(i => counters[i] >= 4)
+  state.isMill = winningRowsForFields[idxBoard].reduce((acc, i) => acc | (++counters[i] >= 4), false)
   hashPiece(state, idxBoard)
   return state;
 }
