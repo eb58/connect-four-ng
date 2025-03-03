@@ -305,23 +305,24 @@ test('winning 7 - depth 8', () => {
   expect(sc.bestMoves[0].score).toBeLessThanOrEqual(MAXVAL - 8);
 })
 
-test('winning 8 - depth 10', () => {
-  initGame('blue|5443421244553533332222')
+test('winning 8 - depth 8', () => {
+  initGame('red|33333535212225510112245514444')
   const sc = cf.searchBestMove()
   // console.log('winning 8', sc)
+  expect(sc.depth).toBe(8)
+  expect(sc.bestMoves[0].move).toBe(4);
+  expect(sc.bestMoves[0].score).toBe(MAXVAL - 8);
+})
+
+test('winning 9 - depth 10', () => {
+  initGame('blue|5443421244553533332222')
+  const sc = cf.searchBestMove()
+  // console.log('winning 9', sc)
   expect(sc.depth).toBe(10)
   expect(sc.bestMoves[0].move).toBe(4);
   expect(sc.bestMoves[0].score).toBe(MAXVAL - 10);
 })
 
-test('winning 9 - depth 8', () => {
-  initGame('red|33333535212225510112245514444')
-  const sc = cf.searchBestMove()
-  // console.log('winning 9', sc)
-  expect(sc.depth).toBe(8)
-  expect(sc.bestMoves[0].move).toBe(4);
-  expect(sc.bestMoves[0].score).toBe(MAXVAL - 8);
-})
 
 test('winning 10 - depth 10', () => {
   initGame('blue|5443421244553533332222')
