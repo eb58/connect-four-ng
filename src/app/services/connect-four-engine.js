@@ -8,7 +8,7 @@ const cache = (insertCondition = _ => true, c = {}) => ({
   clear: () => c = {},
   info: () => console.log('CACHE SIZE', Object.keys(c).length)
 })
-const CACHE = cache(x => x >= MAXVAL - 50 || x <= -MAXVAL + 50);
+const CACHE = cache(x => x >= MAXVAL - 50);
 const memoize = (f, hash, c = CACHE) => (...args) => {
   const h = hash(...args);
   const val = c.get(h);
