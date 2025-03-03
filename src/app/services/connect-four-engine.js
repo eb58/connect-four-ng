@@ -77,9 +77,8 @@ const doMove = (c, state) => {
 
 const undoMove = (c, state) => {
   --state.heightCols[c];
-  const idxBoard = c + DIM.NCOL * state.heightCols[c]
   const counters = state.side === Player.blue ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
-  winningRowsForFields[idxBoard].forEach((i) => counters[i]--)
+  winningRowsForFields[c + DIM.NCOL * state.heightCols[c]].forEach((i) => counters[i]--)
 }
 
 const computeScoreOfNode = (state) => (state.side === Player.blue ? -1 : 1) * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
