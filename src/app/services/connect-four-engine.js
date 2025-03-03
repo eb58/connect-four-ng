@@ -97,7 +97,7 @@ let negamax = (state, depth, maxDepth, alpha, beta) => {
   return alpha;
 }
 negamax = memoize(negamax, s => s.hash);
-negamax = decorator(negamax, () => (++searchInfo.nodes & 8191) && !timeOut())
+negamax = decorator(negamax, () => ++searchInfo.nodes & 65535 || !timeOut())
 
 export class ConnectFourEngine {
   state;  // state that is used for evaluating
