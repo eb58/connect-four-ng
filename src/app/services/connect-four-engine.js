@@ -6,7 +6,7 @@ const cache = (insertCondition = _ => true, c = {}) => ({
   },
   get: key => c[key],
   clear: () => c = {},
-  info: () => console.log('CACHE SIZE', Object.keys(c).length)
+  info: (s) => console.log(s, 'CACHE SIZE:', Object.keys(c).length)
 })
 const CACHE = cache(x => x >= MAXVAL - 50);
 const memoize = (f, hash, c = CACHE) => (...args) => {
@@ -26,7 +26,6 @@ const pieceKeys = range(84).map(() => rand32())
 */
 const sideKeys = [127938607, 1048855538]
 const pieceKeys = [227019481, 1754434862, 629481213, 887205851, 529032562, 2067323277, 1070040335, 567190488, 468610655, 1669182959, 236891527, 1211317841, 849223426, 1031915473, 315781957, 1594703270, 114113554, 966088184, 2114417493, 340442843, 410051610, 1895709998, 502837645, 2046296443, 1720231708, 1437032187, 80592865, 1757570123, 2063094472, 1123905671, 901800952, 1894943568, 732390329, 401463737, 2055893758, 1688751506, 115630249, 391883254, 249795256, 1341740832, 807352454, 2122692086, 851678180, 1154773536, 64453931, 311845715, 1173309830, 1855940732, 1662371745, 998042207, 2121332908, 1905657426, 873276463, 1048910740, 1181863470, 136324833, 881754029, 1037297764, 1385633069, 2037058967, 398045724, 1522858950, 1892619084, 1364648567, 771375215, 983991136, 260316522, 648466817, 1502780386, 1733680598, 401803338, 2136229086, 718267066, 485772484, 1936892066, 1051148609, 1018878751, 1721684837, 1720651398, 2073094346, 526823540, 1170625524, 465996760, 1587572180]
-const hashPiece = (state, sq) => state.hash ^= pieceKeys[sq * state.side] ^ sideKeys[state.side];
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -53,15 +52,6 @@ export const winningRowsForFields = range(DIM.NCOL * DIM.NROW).map(i => winningR
 
 const MOVES = [3, 4, 2, 5, 1, 6, 0];
 
-const STATE = {
-  heightCols: range(DIM.NCOL).map(() => 0),
-  winningRowsCounterRed: winningRows.map(() => 0),
-  winningRowsCounterBlue: winningRows.map(() => 0),
-  side: Player.blue,
-  isMill: false,
-  hash: 0,
-};
-
 const searchInfo = {
   nodes: 0, stopAt: 0, depth: 0, bestMoves: [],
 }
@@ -74,26 +64,32 @@ const doMove = (c, state) => {
   state.side = state.side === Player.red ? Player.blue : Player.red;
   const counters = state.side === Player.blue ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
   state.isMill = winningRowsForFields[idxBoard].reduce((acc, i) => acc | (++counters[i] >= 4), false)
-  hashPiece(state, idxBoard)
+  state.hash ^= pieceKeys[idxBoard * state.side] ^ sideKeys[state.side];
   return state;
 }
 
 const undoMove = (c, state) => {
   --state.heightCols[c];
+  const idxBoard = c + DIM.NCOL * state.heightCols[c]
+  state.hash ^= pieceKeys[idxBoard * state.side] ^ sideKeys[state.side];
   const counters = state.side === Player.blue ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
-  winningRowsForFields[c + DIM.NCOL * state.heightCols[c]].forEach((i) => counters[i]--)
+  winningRowsForFields[idxBoard].forEach((i) => counters[i]--)
+  state.side = state.side === Player.red ? Player.blue : Player.red;
+  state.isMill = false
 }
 
-const computeScoreOfNode = (state) => (state.side === Player.blue ? -1 : 1) * winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i]) * wr.val), 0)
+const computeScoreOfNode = (state) => {
+  const x = winningRows.reduce((res, wr, i) => res + (state.winningRowsCounterRed[i] > 0 && state.winningRowsCounterBlue[i] > 0 ? 0 : (state.winningRowsCounterBlue[i] - state.winningRowsCounterRed[i])), 0)
+  return state.side === Player.blue ? -x : x
+}
 
 let negamax = (state, depth, maxDepth, alpha, beta) => {
   if (state.isMill) return -MAXVAL + depth
-  if (MOVES.every(m => state.heightCols[m] >= DIM.NROW)) return 0
   if (depth === maxDepth) return computeScoreOfNode(state);
+  if (MOVES.every(m => state.heightCols[m] >= DIM.NROW)) return 0
   for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
-    const newState = doMove(m, {...state})
-    const score = -negamax(newState, depth + 1, maxDepth, -beta, -alpha)
-    undoMove(m, newState)
+    const score = -negamax(doMove(m, state), depth + 1, maxDepth, -beta, -alpha)
+    undoMove(m, state)
     if (score > alpha) alpha = score;
     if (alpha >= beta) return alpha;
   }
@@ -109,29 +105,31 @@ export class ConnectFourEngine {
     this.init()
   }
 
-  init = () => {
-    this.state = {
-      ...STATE,
-      heightCols: [...STATE.heightCols],
-      winningRowsCounterRed: [...STATE.winningRowsCounterRed],
-      winningRowsCounterBlue: [...STATE.winningRowsCounterBlue],
-    }
+  init = () => this.state = {
+    heightCols: range(DIM.NCOL).map(() => 0),
+    winningRowsCounterRed: winningRows.map(() => 0),
+    winningRowsCounterBlue: winningRows.map(() => 0),
+    side: Player.blue,
+    isMill: false,
+    hash: 0,
   }
+
   isAllowedMove = (c) => this.state.heightCols[c] < DIM.NROW
   doMove = m => doMove(m, this.state);
 
-  searchBestMove = (maxThinkingDuration = 1000, maxDepth = 40) => {
+  searchBestMove = (opts) => {
+    opts = {maxThinkingDuration: 1000, maxDepth: 40, ...opts,}
     CACHE.clear()
     searchInfo.nodes = 0
-    searchInfo.stopAt = Date.now() + maxThinkingDuration;
+    searchInfo.stopAt = Date.now() + opts.maxThinkingDuration;
 
     const moves = MOVES.filter(c => this.state.heightCols[c] < DIM.NROW);
-    for (let depth = 2; depth <= maxDepth; depth += 2) {
+    for (let depth = 4; depth <= opts.maxDepth; depth += 2) {
       const bestMoves = []
       for (let i = 0; i < moves.length; i++) {
-        const newState = doMove(moves[i], {...this.state})
-        const score = -negamax(newState, 0, depth, -MAXVAL, +MAXVAL)
-        undoMove(moves[i], newState)
+        const score = -negamax(doMove(moves[i], this.state), 0, depth, -MAXVAL, +MAXVAL)
+        undoMove(moves[i], this.state)
+        if (timeOut()) break;
         bestMoves.push({move: moves[i], score});
         if (score > MAXVAL - 50) {
           searchInfo.depth = depth
