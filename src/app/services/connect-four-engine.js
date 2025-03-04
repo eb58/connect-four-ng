@@ -3,10 +3,7 @@ const cache = (insertCondition = _ => true, c = {}) => ({
   add: (key, val) => {
     if (insertCondition(val)) c[key] = val;
     return val
-  },
-  get: key => c[key],
-  clear: () => c = {},
-  info: (s) => console.log(s, 'CACHE SIZE:', Object.keys(c).length)
+  }, get: key => c[key], clear: () => c = {}, info: (s) => console.log(s, 'CACHE SIZE:', Object.keys(c).length)
 })
 const CACHE = cache(x => x >= MAXVAL - 50);
 const memoize = (f, hash, c = CACHE) => (...args) => {
@@ -63,7 +60,8 @@ const doMove = (c, state) => {
   state.heightCols[c]++;
   state.side = state.side === Player.red ? Player.blue : Player.red;
   const counters = state.side === Player.blue ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
-  state.isMill = winningRowsForFields[idxBoard].reduce((acc, i) => acc | (++counters[i] >= 4), false)
+  winningRowsForFields[idxBoard].forEach(i => ++counters[i] >= 4)
+  state.isMill = winningRowsForFields[idxBoard].some(i => counters[i] >= 4)
   state.hash ^= pieceKeys[idxBoard * state.side] ^ sideKeys[state.side];
   return state;
 }
@@ -85,7 +83,7 @@ const computeScoreOfNode = (state) => {
 
 let negamax = (state, depth, maxDepth, alpha, beta) => {
   if (state.isMill) return -MAXVAL + depth
-  if (depth === maxDepth) return computeScoreOfNode(state);
+  if (depth === maxDepth) return 0; //  computeScoreOfNode(state);
   if (MOVES.every(m => state.heightCols[m] >= DIM.NROW)) return 0
   for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
     const score = -negamax(doMove(m, state), depth + 1, maxDepth, -beta, -alpha)
@@ -121,7 +119,8 @@ export class ConnectFourEngine {
     opts = {maxThinkingTime: 1000, maxDepth: 40, ...opts,}
     CACHE.clear()
     searchInfo.nodes = 0
-    searchInfo.stopAt = Date.now() + opts.maxThinkingTime;
+    searchInfo.startAt = Date.now()
+    searchInfo.stopAt = searchInfo.startAt + opts.maxThinkingTime;
 
     const moves = MOVES.filter(c => this.state.heightCols[c] < DIM.NROW);
     for (let depth = 4; depth <= opts.maxDepth; depth += 2) {

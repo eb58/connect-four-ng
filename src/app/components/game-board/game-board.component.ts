@@ -141,9 +141,9 @@ export class GameBoardComponent {
     return ''
   }
 
-  infoStr = (sc: { bestMoves: any[]; depth: any; nodes: any; }): string => {
+  infoStr = (sc: { bestMoves: any[]; depth: number; nodes: number; startAt: number }): string => {
     const scores = sc.bestMoves.map((m) => `${m.move + 1}:${m.score}`).join(' ')
-    return `DEPTH:${sc.depth} NODES:${sc.nodes} SCORES:${scores} BOARD:${(this.beginner === Player.blue ? 'blue' : 'red') + '|' + this.moves.join('').trim()}`
+    return `DEPTH:${sc.depth} NODES:${sc.nodes} SCORES:${scores} BOARD:${(this.beginner === Player.blue ? 'blue' : 'red') + '|' + this.moves.join('').trim()} , ${Date.now() - sc.startAt}`
   }
 
   hint() {
