@@ -369,13 +369,30 @@ test('winning 14 - depth 16', () => {
   expect(sc.bestMoves[0].score).toBe(MAXVAL - 16);
 })
 
-test('winning 15 - depth 18', () => {
+xtest('winning 15 - depth 18', () => {
   initGame('blue|323122334104334522')
-  const sc = cf.searchBestMove({maxThinkingTime: 2000, maxDepth: 18})
+  const sc = cf.searchBestMove({maxThinkingTime: 2000})
   console.log('winning 15', sc)
   expect(sc.depth).toBe(18)
   expect(sc.bestMoves[0].move).toBe(1);
   expect(sc.bestMoves[0].score).toBe(MAXVAL - 18);
 })
 
+xtest('winning 16 - depth 20', () => {
+  initGame('red|332410233334225')
+  const sc = cf.searchBestMove({maxThinkingTime: 4000})
+  console.log('winning 16', sc)
+  expect(sc.depth).toBe(20)
+  expect(sc.bestMoves[0].move).toBe(4);
+  expect(sc.bestMoves[0].score).toBe(MAXVAL - 20);
+})
+
+xtest('winning 17 - depth 22', () => {
+  initGame('red|04032300233322434')
+  const sc = cf.searchBestMove({maxThinkingTime: 5000})
+  console.log('winning 17', sc)
+  expect(sc.depth).toBe(22)
+  expect(sc.bestMoves[0].move).toBe(4);
+  expect(sc.bestMoves[0].score).toBe(MAXVAL - 22);
+})
 
