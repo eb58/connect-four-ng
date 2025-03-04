@@ -92,7 +92,7 @@ export class GameBoardComponent {
     this.hintStr = ''
     this.thinking = true
     setTimeout(() => {
-      const sc = this.cf.searchBestMove(this.gameSettings.maxThinkingTime)
+      const sc = this.cf.searchBestMove(this.gameSettings)
       const bestMoves = sc.bestMoves
       this.thinking = false
       this.doMove(bestMoves[0].move)

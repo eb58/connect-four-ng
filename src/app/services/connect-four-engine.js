@@ -118,10 +118,10 @@ export class ConnectFourEngine {
   doMove = m => doMove(m, this.state);
 
   searchBestMove = (opts) => {
-    opts = {maxThinkingDuration: 1000, maxDepth: 40, ...opts,}
+    opts = {maxThinkingTime: 1000, maxDepth: 40, ...opts,}
     CACHE.clear()
     searchInfo.nodes = 0
-    searchInfo.stopAt = Date.now() + opts.maxThinkingDuration;
+    searchInfo.stopAt = Date.now() + opts.maxThinkingTime;
 
     const moves = MOVES.filter(c => this.state.heightCols[c] < DIM.NROW);
     for (let depth = 4; depth <= opts.maxDepth; depth += 2) {
@@ -134,14 +134,14 @@ export class ConnectFourEngine {
         if (score > MAXVAL - 50) {
           searchInfo.depth = depth
           searchInfo.bestMoves = bestMoves.sort((a, b) => b.score - a.score)
-          // console.log(`DEPTH:${depth}`, bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, ''))
+          // console.log(`DEPTH1:${depth}`, bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, ''), searchInfo.nodes)
           return searchInfo
         }
       }
       if (timeOut()) break;
       searchInfo.depth = depth
       searchInfo.bestMoves = bestMoves.sort((a, b) => b.score - a.score)
-      // console.log(`DEPTH:${depth}`, bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, ''))
+      // console.log(`DEPTH2:${depth}`, bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, ''), searchInfo.nodes)
       if (bestMoves.every((m) => m.score < -MAXVAL + 50)                // all moves lead to disaster
         || bestMoves.filter((m) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
       ) break;
