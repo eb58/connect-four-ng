@@ -1,4 +1,3 @@
-// @ts-ignore
 import {
   ConnectFourEngine,
   DIM,
@@ -202,9 +201,9 @@ test('eval 8 - bad moves', () => {
 
 test('eval 9', () => {
   // _  _  _  _  _  _  _
-  // _  _  _  C  _  _  _
+  // _  _  _  _  _  _  _
   initGame('blue|')
-  const sc = cf.searchBestMove({maxDepth: 10})
+  const sc = cf.searchBestMove({maxThinkingTime: 100})
   console.log('eval 9', sc)
   expect(sc.depth).toBe(10)
   // expect(sc.bestMoves.every((m) => m.score > 0)).toBeTruthy();
@@ -369,7 +368,7 @@ test('winning 14 - depth 16', () => {
   expect(sc.bestMoves[0].score).toBe(MAXVAL - 16);
 })
 
-xtest('winning 15 - depth 18', () => {
+test('winning 15 - depth 18', () => {
   initGame('blue|323122334104334522')
   const sc = cf.searchBestMove({maxThinkingTime: 2000})
   console.log('winning 15', sc)
@@ -395,4 +394,3 @@ xtest('winning 17 - depth 22', () => {
   expect(sc.bestMoves[0].move).toBe(4);
   expect(sc.bestMoves[0].score).toBe(MAXVAL - 22);
 })
-

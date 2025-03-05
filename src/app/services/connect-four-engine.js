@@ -3,7 +3,10 @@ const cache = (insertCondition = _ => true, c = {}) => ({
   add: (key, val) => {
     if (insertCondition(val)) c[key] = val;
     return val
-  }, get: key => c[key], clear: () => c = {}, info: (s) => console.log(s, 'CACHE SIZE:', Object.keys(c).length)
+  },
+  get: key => c[key],
+  clear: () => c = {},
+  info: (s = "") => `${s}CACHE:${Object.keys(c).length}`
 })
 const CACHE = cache(x => x >= MAXVAL - 50);
 const memoize = (f, hash, c = CACHE) => (...args) => {
@@ -63,11 +66,13 @@ const doMove = (c, state) => {
   winningRowsForFields[idxBoard].forEach(i => ++counters[i] >= 4)
   state.isMill = winningRowsForFields[idxBoard].some(i => counters[i] >= 4)
   state.hash ^= pieceKeys[idxBoard * state.side] ^ sideKeys[state.side];
+  state.cntMoves++
   return state;
 }
 
 const undoMove = (c, state) => {
   --state.heightCols[c];
+  state.cntMoves--
   const idxBoard = c + DIM.NCOL * state.heightCols[c]
   state.hash ^= pieceKeys[idxBoard * state.side] ^ sideKeys[state.side];
   const counters = state.side === Player.blue ? state.winningRowsCounterBlue : state.winningRowsCounterRed;
@@ -81,12 +86,12 @@ const computeScoreOfNode = (state) => {
   return state.side === Player.blue ? -x : x
 }
 
-let negamax = (state, depth, maxDepth, alpha, beta) => {
+let negamax = (state, depth, maxDepth, alpha, beta, moves) => {
   if (state.isMill) return -MAXVAL + depth
-  if (depth === maxDepth) return 0; //  computeScoreOfNode(state);
-  if (MOVES.every(m => state.heightCols[m] >= DIM.NROW)) return 0
-  for (const m of MOVES) if (state.heightCols[m] < DIM.NROW) {
-    const score = -negamax(doMove(m, state), depth + 1, maxDepth, -beta, -alpha)
+  if (depth === maxDepth) return 0;// computeScoreOfNode(state);
+  if (state.cntMoves === 42) return 0
+  for (const m of moves) if (state.heightCols[m] < DIM.NROW) {
+    const score = -negamax(doMove(m, state), depth + 1, maxDepth, -beta, -alpha, moves)
     undoMove(m, state)
     if (score > alpha) alpha = score;
     if (alpha >= beta) return alpha;
@@ -109,11 +114,19 @@ export class ConnectFourEngine {
     winningRowsCounterBlue: winningRows.map(() => 0),
     side: Player.blue,
     isMill: false,
+    cntMoves: 0,
     hash: 0,
   }
 
   isAllowedMove = (c) => this.state.heightCols[c] < DIM.NROW
   doMove = m => doMove(m, this.state);
+
+  prepareResult = (depth, bestMoves) => {
+    searchInfo.depth = depth
+    searchInfo.bestMoves = bestMoves.sort((a, b) => b.score - a.score)
+    // console.log(`DEPTH:${depth} { ${bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, '')}} NODES:${searchInfo.nodes} ${Date.now() - searchInfo.startAt + 'ms'} ${CACHE.info()}`)
+    return searchInfo
+  }
 
   searchBestMove = (opts) => {
     opts = {maxThinkingTime: 1000, maxDepth: 40, ...opts,}
@@ -126,25 +139,19 @@ export class ConnectFourEngine {
     for (let depth = 4; depth <= opts.maxDepth; depth += 2) {
       const bestMoves = []
       for (let i = 0; i < moves.length; i++) {
-        const score = -negamax(doMove(moves[i], this.state), 0, depth, -MAXVAL, +MAXVAL)
+        const score = -negamax(doMove(moves[i], this.state), 0, depth, -MAXVAL, +MAXVAL, moves)
         undoMove(moves[i], this.state)
         if (timeOut()) break;
         bestMoves.push({move: moves[i], score});
-        if (score > MAXVAL - 50) {
-          searchInfo.depth = depth
-          searchInfo.bestMoves = bestMoves.sort((a, b) => b.score - a.score)
-          // console.log(`DEPTH1:${depth}`, bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, ''), searchInfo.nodes)
-          return searchInfo
-        }
+        if (score > MAXVAL - 50) return this.prepareResult(depth, bestMoves)
       }
       if (timeOut()) break;
-      searchInfo.depth = depth
-      searchInfo.bestMoves = bestMoves.sort((a, b) => b.score - a.score)
-      // console.log(`DEPTH2:${depth}`, bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, ''), searchInfo.nodes)
+      this.prepareResult(depth, bestMoves);
       if (bestMoves.every((m) => m.score < -MAXVAL + 50)                // all moves lead to disaster
         || bestMoves.filter((m) => m.score > -MAXVAL + 50).length === 1 // all moves but one lead to disaster
       ) break;
     }
     return searchInfo;
   }
+
 }
