@@ -1,19 +1,12 @@
-import {
-  ConnectFourEngine,
-  DIM,
-  MAXVAL,
-  Player,
-  winningRows,
-  winningRowsForFields
-} from '../app/services/connect-four-engine.js';
+const cf = require('../app/services/connect-four-engine.js');
 
 const range = (n) => [...Array(n).keys()]
 
-let cf = new ConnectFourEngine()
+const {Player, winningRows, winningRowsForFields, DIM, MAXVAL} = {...cf}
 
 const initGame = (game) => {
   const x = game.split('|')
-  cf.state.side = x[0] === 'blue' ? Player.blue : Player.red
+  cf.getState().side = x[0] === 'blue' ? cf.Player.blue : cf.Player.red
   x[1].split('').map(x => +x).forEach(v => cf.doMove(v));
 }
 
@@ -27,17 +20,17 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[0]).toEqual([0, 1, 2])
   expect(winningRowsForFields[1]).toEqual([0, 3, 4, 5])
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
-  expect(cf.state.side).toBe(Player.blue);
-  expect(cf.state.heightCols).toEqual(range(DIM.NCOL).map(() => 0));
-  expect(cf.state.isMill).toBe(false);
+  expect(cf.getState().side).toBe(Player.blue);
+  expect(cf.getState().heightCols).toEqual(range(DIM.NCOL).map(() => 0));
+  expect(cf.getState().isMill).toBe(false);
 });
 
 test('whoseTurn works', () => {
-  expect(cf.state.side).toBe(Player.blue);
-  cf.doMove(0)
-  expect(cf.state.side).toBe(Player.red);
-  cf.doMove(3)
-  expect(cf.state.side).toBe(Player.blue);
+  expect(cf.getState().side).toBe(Player.blue);
+  cf.doMove(0, cf.getState())
+  expect(cf.getState().side).toBe(Player.red);
+  cf.doMove(3, cf.getState())
+  expect(cf.getState().side).toBe(cf.Player.blue);
 });
 
 test('draw - full board', () => {
@@ -131,7 +124,7 @@ test('eval 3 - bad moves', () => {
   // C  _  _  H  _  _  _
   // C  _  _  H  _  _  _
   const sc = cf.searchBestMove()
-  // console.log('eval 3', sc) // , dumpBoard(cf.state.board))
+  // console.log('eval 3', sc) // , dumpBoard(cf.STATE.board))
   expect(sc.depth).toBe(4)
   expect(sc.bestMoves[0].move).toBe(3);
   expect(sc.bestMoves.slice(1).every((m) => m.score === -MAXVAL + 1)).toBeTruthy();
@@ -203,7 +196,7 @@ test('eval 9', () => {
   // _  _  _  _  _  _  _
   // _  _  _  _  _  _  _
   initGame('blue|')
-  const sc = cf.searchBestMove({maxThinkingTime: 100})
+  const sc = cf.searchBestMove({maxThinkingTime: 200})
   console.log('eval 9', sc)
   expect(sc.depth).toBe(10)
   // expect(sc.bestMoves.every((m) => m.score > 0)).toBeTruthy();
@@ -371,7 +364,7 @@ test('winning 14 - depth 16', () => {
 test('winning 15 - depth 18', () => {
   initGame('blue|323122334104334522')
   const sc = cf.searchBestMove({maxThinkingTime: 2000})
-  console.log('winning 15', sc)
+  // console.log('winning 15', sc)
   expect(sc.depth).toBe(18)
   expect(sc.bestMoves[0].move).toBe(1);
   expect(sc.bestMoves[0].score).toBe(MAXVAL - 18);
