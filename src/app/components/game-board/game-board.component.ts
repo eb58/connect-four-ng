@@ -40,8 +40,7 @@ export class GameBoardComponent {
 
   constructor(public dialog: MatDialog) {
     this.init()
-    this.cf.getState().side = this.gameSettings.beginner
-    if (this.cf.getState().side === cf.Player.blue) this.actAsAI()
+    if (this.cf.side() === cf.Player.blue) this.actAsAI()
   }
 
   init = () => {
@@ -50,12 +49,12 @@ export class GameBoardComponent {
     this.board = range(cf.DIM.NROW * cf.DIM.NCOL).map(() => ' ');
   }
 
-  isMill = (): boolean => this.cf.getState().isMill
-  isDraw = (): boolean => this.cf.getState().heightCols.every((c: number) => c >= cf.DIM.NROW) && !this.cf.getState().isMill
+  isMill = (): boolean => this.cf.isMill()
+  isDraw = (): boolean => this.cf.isDraw()
   doMove = (m: number) => {
-    this.board[m + cf.DIM.NCOL * (this.cf.getState().heightCols[m])] = this.cf.getState().side === cf.Player.blue ? 'blue' : 'red';
+    this.board[m + cf.DIM.NCOL * this.cf.getHeightOfCol(m)] = this.cf.side() === cf.Player.blue ? 'blue' : 'red';
     this.moves.push(m);
-    this.cf.doMove(m, cf.getState());
+    this.cf.doMove(m);
   }
   undoMove = () => this.restart(this.moves.slice(0, -2), this.beginner)
 
@@ -105,11 +104,10 @@ export class GameBoardComponent {
 
   restart = (moves: number[] = [], side: number) => {
     this.init();
-    this.cf.init()
-    this.cf.getState().side = side
+    this.cf.init(side)
     this.beginner = side
     moves.forEach(v => this.doMove(v));
-    if (this.cf.getState().side === cf.Player.blue) this.actAsAI()
+    if (this.cf.side() === cf.Player.blue) this.actAsAI()
   }
 
   initGame = (game: string) => {
@@ -134,7 +132,7 @@ export class GameBoardComponent {
   getClass = (row: number, col: number): string => {
     const x = col + cf.DIM.NCOL * row;
     const lastMove = this.moves[this.moves.length - 1];
-    const idx = lastMove + cf.DIM.NCOL * (this.cf.getState().heightCols[lastMove] - 1);
+    const idx = lastMove + cf.DIM.NCOL * (this.cf.getHeightOfCol(lastMove) - 1);
 
     if (this.board[x] === 'red') return x == idx ? 'redx' : 'red'
     if (this.board[x] === 'blue') return x == idx ? 'bluex' : 'blue'

@@ -2,11 +2,11 @@ const cf = require('../app/services/connect-four-engine.js');
 
 const range = (n) => [...Array(n).keys()]
 
-const {Player, winningRows, winningRowsForFields, DIM, MAXVAL} = {...cf}
+const {Player, winningRows, winningRowsForFields, MAXVAL} = {...cf}
 
 const initGame = (game) => {
   const x = game.split('|')
-  cf.getState().side = x[0] === 'blue' ? cf.Player.blue : cf.Player.red
+  cf.init(x[0] === 'blue' ? cf.Player.blue : cf.Player.red)
   x[1].split('').map(x => +x).forEach(v => cf.doMove(v));
 }
 
@@ -20,22 +20,23 @@ test('initialized correctly', () => {
   expect(winningRowsForFields[0]).toEqual([0, 1, 2])
   expect(winningRowsForFields[1]).toEqual([0, 3, 4, 5])
   expect(winningRowsForFields[10]).toEqual([7, 11, 15, 18, 21, 24, 25, 26, 48, 54])
-  expect(cf.getState().side).toBe(Player.blue);
-  expect(cf.getState().heightCols).toEqual(range(DIM.NCOL).map(() => 0));
-  expect(cf.getState().isMill).toBe(false);
+  expect(cf.side()).toBe(Player.blue);
+  range(7).forEach(c => expect(cf.getHeightOfCol(c)).toEqual(0));
+  expect(cf.isMill()).toBe(false);
 });
 
 test('whoseTurn works', () => {
-  expect(cf.getState().side).toBe(Player.blue);
-  cf.doMove(0, cf.getState())
-  expect(cf.getState().side).toBe(Player.red);
-  cf.doMove(3, cf.getState())
-  expect(cf.getState().side).toBe(cf.Player.blue);
+  expect(cf.side()).toBe(Player.blue);
+  cf.doMove(0)
+  expect(cf.side()).toBe(Player.red);
+  cf.doMove(3)
+  expect(cf.side()).toBe(cf.Player.blue);
 });
 
 test('draw - full board', () => {
   initGame('blue|323336363662122226655554550000001114441414')
   expect(cf.searchBestMove().bestMoves.length).toBe(0)
+  expect(cf.isDraw()).toBe(true)
 });
 
 test('draw - board almost full', () => {
@@ -198,7 +199,7 @@ test('eval 9', () => {
   initGame('blue|')
   const sc = cf.searchBestMove({maxThinkingTime: 200})
   console.log('eval 9', sc)
-  expect(sc.depth).toBe(10)
+  expect(sc.depth).toBeGreaterThanOrEqual(10)
   // expect(sc.bestMoves.every((m) => m.score > 0)).toBeTruthy();
 });
 

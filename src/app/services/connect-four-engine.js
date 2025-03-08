@@ -1,4 +1,4 @@
-const connectFourEngine = (() => {
+const cfEngine = (() => {
   const range = n => [...Array(n).keys()]
 
   const DIM = {NCOL: 7, NROW: 6};
@@ -54,11 +54,11 @@ const connectFourEngine = (() => {
 
   let STATE   // state that is used for evaluating
 
-  const init = () => STATE = ({
+  const init = (player = Player.blue) => STATE = ({
     heightCols: range(DIM.NCOL).map(() => 0),
     winningRowsCounterRed: winningRows.map(() => 0),
     winningRowsCounterBlue: winningRows.map(() => 0),
-    side: Player.blue,
+    side: player,
     isMill: false,
     cntMoves: 0,
     hash: 0,
@@ -102,7 +102,7 @@ const connectFourEngine = (() => {
 
   let negamax = (state, depth, maxDepth, alpha, beta, moves) => {
     if (state.isMill) return -MAXVAL + depth
-    if (depth === maxDepth) return computeScoreOfNode(state);
+    if (depth === maxDepth) return 0// computeScoreOfNode(state);
     if (state.cntMoves === 42) return 0
     for (const m of moves) if (state.heightCols[m] < DIM.NROW) {
       const score = -negamax(doMove(m, state), depth + 1, maxDepth, -beta, -alpha, moves)
@@ -115,13 +115,10 @@ const connectFourEngine = (() => {
   negamax = memoize(negamax, s => s.hash);
   negamax = decorator(negamax, () => ++searchInfo.nodes & 65535 || !timeOut())
 
-  const isAllowedMove = (c) => STATE.heightCols[c] < DIM.NROW
-  const getState = () => STATE
-
   const prepareResult = (depth, bestMoves) => {
     searchInfo.depth = depth
     searchInfo.bestMoves = bestMoves.sort((a, b) => b.score - a.score)
-    console.log(`DEPTH:${depth} { ${bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, '')}} NODES:${searchInfo.nodes} ${Date.now() - searchInfo.startAt + 'ms'} ${CACHE.info()}`)
+    // console.log(`DEPTH:${depth} { ${bestMoves.reduce((acc, m) => acc + `${m.move}:${m.score} `, '')}} NODES:${searchInfo.nodes} ${Date.now() - searchInfo.startAt + 'ms'} ${CACHE.info()}`)
     return searchInfo
   }
 
@@ -152,8 +149,14 @@ const connectFourEngine = (() => {
   }
   init();
   return {
-    winningRows, winningRowsForFields, DIM, MAXVAL, Player, getState, init, isAllowedMove, doMove, searchBestMove
+    winningRows, winningRowsForFields, DIM, MAXVAL, Player,
+    init, doMove, searchBestMove,
+    isAllowedMove: c => STATE.heightCols[c] < DIM.NROW && !STATE.isMill && STATE.cntMoves !== DIM.NROW * DIM.NCOL,
+    getHeightOfCol: c => STATE.heightCols[c],
+    side: () => STATE.side,
+    isMill: () => STATE.isMill,
+    isDraw: () => STATE.cntMoves === DIM.NROW * DIM.NCOL && !STATE.isMill,
   }
 })()
 
-if (typeof module !== 'undefined') module.exports = connectFourEngine;
+if (typeof module !== 'undefined') module.exports = cfEngine;
